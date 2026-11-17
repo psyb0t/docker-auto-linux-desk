@@ -200,6 +200,123 @@ def test_script_path_from_argv() -> None:
     assert server.script_path_from_argv([]) is None
 
 
+# The generic tools stealthy-auto-browse exposes, with every option it takes
+# that is not browser-specific. The base must offer at least these, so a
+# derived image never loses an option it relied on.
+_EXPECTED_TOOL_PARAMS = {
+    "run_script": {"steps", "name", "on_error"},
+    "system_click": {
+        "x",
+        "y",
+        "w",
+        "h",
+        "duration",
+        "speed",
+        "curvature",
+        "tremor",
+        "click_hold",
+        "click_delay",
+    },
+    "system_double_click": {
+        "x",
+        "y",
+        "w",
+        "h",
+        "duration",
+        "speed",
+        "curvature",
+        "tremor",
+        "click_hold",
+        "click_delay",
+    },
+    "system_right_click": {
+        "x",
+        "y",
+        "w",
+        "h",
+        "duration",
+        "speed",
+        "curvature",
+        "tremor",
+        "click_hold",
+        "click_delay",
+    },
+    "system_drag": {
+        "source_x",
+        "source_y",
+        "target_x",
+        "target_y",
+        "speed",
+        "curvature",
+        "tremor",
+        "click_hold",
+        "click_delay",
+    },
+    "mouse_move": {"x", "y", "w", "h", "duration", "speed", "curvature", "tremor"},
+    "system_type": {"text", "interval", "typos", "typo_rate", "key_hold", "rollover"},
+    "send_key": {"key", "key_hold", "instant"},
+    "scroll": {"amount", "x", "y", "notch_gap"},
+    "human_pause": {
+        "duration",
+        "x",
+        "y",
+        "w",
+        "h",
+        "drift",
+        "drift_interval",
+        "drift_distance",
+        "speed",
+        "curvature",
+        "tremor",
+    },
+    "paste_text": {"text", "x", "y", "w", "h", "replace"},
+    "set_clipboard": {"text"},
+    "set_clipboard_data": {"format", "text", "content_base64", "files"},
+    "get_clipboard": {"format"},
+    "get_events": {"after_id", "types", "limit"},
+    "wait_for_event": {"after_id", "types", "timeout"},
+    "begin_handoff": set(),
+    "handoff_status": set(),
+    "end_handoff": set(),
+}
+
+
+def test_mcp_tools_keep_every_generic_option():
+    import inspect
+
+    tools = _desk().registry.mcp_tools
+    for name, expected in _EXPECTED_TOOL_PARAMS.items():
+        assert name in tools, f"missing MCP tool {name}"
+        params = set(inspect.signature(tools[name]).parameters)
+        missing = expected - params
+        assert not missing, f"{name} lost options: {sorted(missing)}"
+
+
+def test_mcp_guidance_prefers_pasting_over_typing():
+    tools = _desk().registry.mcp_tools
+    instructions = Registry().mcp_instructions
+    assert "paste_text" in instructions and "system_type only" in instructions
+    assert "paste_text" in (tools["system_type"].__doc__ or "")
+    assert "paste_text" in (tools["send_key"].__doc__ or "")
+    assert "paste_text" in (tools["set_clipboard"].__doc__ or "")
+
+
+def test_set_clipboard_data_tool_sets_html():
+    desk = _desk()
+    calls = []
+
+    async def fake_set(cmd, desk_):
+        calls.append(cmd)
+        return ok({"format": cmd.get("format")})
+
+    desk.registry.register_action("set_clipboard", fake_set, replace=True)
+    result = json.loads(
+        asyncio.run(desk.registry.mcp_tools["set_clipboard_data"](format="html", text="<b>x</b>"))
+    )
+    assert result["success"] is True
+    assert calls == [{"action": "set_clipboard", "format": "html", "text": "<b>x</b>"}]
+
+
 def main() -> None:
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     for test in tests:

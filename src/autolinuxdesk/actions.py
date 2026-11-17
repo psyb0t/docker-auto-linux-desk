@@ -375,6 +375,19 @@ def input_action(handler: input_actions.ActionHandler) -> Callable[[dict, Desk],
     return run
 
 
+async def paste_text(cmd: dict, desk: Desk) -> dict:
+    async def set_clipboard(text: str) -> object:
+        try:
+            return await desk.clipboard.set_text(text)
+        except ClipboardError as error:
+            raise input_actions.InputActionError(str(error)) from error
+
+    try:
+        return ok(await input_actions.paste_text(cmd, desk.surface, desk.system, set_clipboard))
+    except input_actions.InputActionError as error:
+        return fail(str(error))
+
+
 _HANDOFF_SAFE = {
     "ping": ping,
     "list_actions": list_actions,
@@ -406,6 +419,7 @@ _OTHER = {
     "launch_app": launch_app,
     "kill_launched": kill_launched,
     "run_command": run_command,
+    "paste_text": paste_text,
 }
 
 

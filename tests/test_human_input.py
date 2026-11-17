@@ -1278,6 +1278,75 @@ def test_scroll_to_bottom_needs_a_scroll_position() -> None:
     assert "scroll_to_bottom_humanized" in input_actions.SCROLL_POSITION_ACTIONS
 
 
+def _run_paste(cmd: dict, fake: object) -> tuple[dict, list, list]:
+    events: list[tuple] = []
+    sleeps: list[float] = []
+
+    async def set_clipboard(text: str) -> None:
+        events.append(("clipboard", text))
+
+    async def fake_sleep(seconds: float) -> None:
+        sleeps.append(seconds)
+        events.append(("sleep", seconds))
+
+    original_send_key = fake.send_key
+
+    def send_key(*args: object) -> None:
+        events.append(("key", *args))
+        original_send_key(*args)
+
+    fake.send_key = send_key
+    with patch.object(input_actions.asyncio, "sleep", fake_sleep):
+        result = asyncio.run(input_actions.paste_text(cmd, _FakeSurface(), fake, set_clipboard))
+    return result, events, sleeps
+
+
+def test_paste_text_sets_the_clipboard_then_pastes_with_human_gaps() -> None:
+    result, events, sleeps = _run_paste({"text": "hello there"}, _OverrideSystem())
+    assert result == {"pasted_len": 11, "replaced": True}
+    kinds = [e[0] if e[0] != "key" else e[1] for e in events]
+    assert kinds == ["clipboard", "ctrl+a", "sleep", "backspace", "sleep", "ctrl+v"], kinds
+    # Every key goes through human send_key timing: no key_hold, never instant.
+    assert all(len(e) == 2 for e in events if e[0] == "key"), events
+    lo, hi = input_actions._PASTE_GAP_RANGE_S
+    assert all(lo <= gap <= hi for gap in sleeps), sleeps
+
+    gaps = []
+    for seed in range(30):
+        fake = _OverrideSystem()
+        fake.rng = random.Random(seed)
+        _, _, sleeps = _run_paste({"text": "x"}, fake)
+        gaps.extend(sleeps)
+    assert statistics.pstdev(gaps) > 0.02, "paste gaps must vary like a person's"
+
+
+def test_paste_text_clicks_first_and_can_paste_at_the_caret() -> None:
+    fake = _OverrideSystem()
+    result, events, sleeps = _run_paste({"text": "abc", "x": 50, "y": 60, "w": 200}, fake)
+    assert fake.calls[0][0] == "click" and fake.calls[0][1:3] == (50.0, 60.0)
+    assert result["clicked_at"] == {"x": 50, "y": 60}
+    keys = [e[1] for e in events if e[0] == "key"]
+    assert keys == ["ctrl+a", "backspace", "ctrl+v"]
+    lo, hi = input_actions._PASTE_REACH_RANGE_S
+    assert lo <= sleeps[0] <= hi, "a pause for the hand to reach the keyboard"
+
+    result, events, _ = _run_paste({"text": "abc", "replace": False}, _OverrideSystem())
+    assert result == {"pasted_len": 3, "replaced": False}
+    assert [e[1] for e in events if e[0] == "key"] == ["ctrl+v"]
+
+    for cmd, message in (
+        ({"text": ""}, "No text"),
+        ({"text": "a", "x": 5}, "x and y must be given together"),
+        ({"text": "a", "replace": "yes"}, "replace must be true or false"),
+    ):
+        try:
+            _run_paste(cmd, _OverrideSystem())
+        except input_actions.InputActionError as error:
+            assert str(error) == message, (cmd, str(error))
+        else:
+            raise AssertionError(f"accepted {cmd}")
+
+
 def main_test() -> None:
     tests = [
         value

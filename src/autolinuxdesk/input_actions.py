@@ -16,6 +16,7 @@ import asyncio
 import dataclasses
 import math
 from collections.abc import Awaitable, Callable
+from typing import Any
 
 from autolinuxdesk import human_keyboard, human_mouse, human_scroll
 from autolinuxdesk.human_keyboard import TypingProfile
@@ -638,6 +639,63 @@ async def system_type(cmd: dict, surface: Surface, system: System) -> dict:
     result: dict = {"typed_len": len(text), "typos": allowed}
     if guard is not None and not guard.is_allowed:
         result["typos_disabled_reason"] = guard.reason
+    return result
+
+
+# Pauses around a paste: moving the hand from the mouse to the keyboard, and
+# the beat between ctrl+a, backspace and ctrl+v.
+_PASTE_REACH_MEDIAN_S = 0.35
+_PASTE_REACH_SIGMA = 0.4
+_PASTE_REACH_RANGE_S = (0.15, 1.2)
+_PASTE_GAP_MEDIAN_S = 0.22
+_PASTE_GAP_SIGMA = 0.45
+_PASTE_GAP_RANGE_S = (0.07, 0.9)
+_KEY_SELECT_ALL = "ctrl+a"
+_KEY_CLEAR = "backspace"
+_KEY_PASTE = "ctrl+v"
+
+SetClipboard = Callable[[str], Awaitable[Any]]
+
+
+async def paste_text(
+    cmd: dict, surface: Surface, system: System, set_clipboard: SetClipboard
+) -> dict:
+    """Enter text the way people do: clipboard, then ctrl+a, backspace, ctrl+v.
+
+    With x and y, clicks the field first with human motion. Each key goes
+    through send_key with human timing, with irregular pauses between them.
+    replace=false skips ctrl+a and backspace and pastes at the caret.
+    """
+    text = _text_param(cmd)
+    replace = _flag(cmd, "replace", True)
+    x, y = _xy(cmd, required=False)
+    rng = system.rng
+    clicked = None
+    if x is not None:
+        clicked = await system_click(cmd, surface, system)
+    await set_clipboard(text)
+    if clicked is not None:
+        await asyncio.sleep(
+            human_mouse.lognormal(
+                rng, _PASTE_REACH_MEDIAN_S, _PASTE_REACH_SIGMA, _PASTE_REACH_RANGE_S
+            )
+        )
+    keys = [_KEY_SELECT_ALL, _KEY_CLEAR, _KEY_PASTE] if replace else [_KEY_PASTE]
+    try:
+        for index, key in enumerate(keys):
+            if index:
+                await asyncio.sleep(
+                    human_mouse.lognormal(
+                        rng, _PASTE_GAP_MEDIAN_S, _PASTE_GAP_SIGMA, _PASTE_GAP_RANGE_S
+                    )
+                )
+            await asyncio.to_thread(system.send_key, key)
+    except InputError as error:
+        raise InputActionError(str(error)) from error
+    result: dict[str, Any] = {"pasted_len": len(text), "replaced": replace}
+    if clicked is not None:
+        result["clicked_at"] = clicked["system_clicked"]
+        result["landed_at"] = clicked["landed_at"]
     return result
 
 

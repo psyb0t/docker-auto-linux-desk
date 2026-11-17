@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.2.0] 2026-11-17
+
+### Added
+
+- `paste_text` action and MCP tool: enters text the way people do. It puts the text on the clipboard, clicks the field when `x` and `y` are given, then presses `ctrl+a`, `backspace` and `ctrl+v` through the humanized `send_key`, with irregular pauses between the keys and before the first key after the click. `replace: false` pastes at the caret. It is meant for GUI text fields; terminals bind those keys differently.
+- `set_clipboard_data` MCP tool for HTML, PNG and file-list clipboard data, matching stealthy-auto-browse.
+- The MCP `mouse_move` and `human_pause` tools take every option stealthy-auto-browse's do (`curvature`, `tremor`, `drift_interval`, `drift_distance`, `speed`), and `system_double_click`, `system_right_click` and `system_drag` take the mouse overrides.
+- The integration suite now covers every system-level check from stealthy-auto-browse's suites: users and ownership, recording, auth, the VNC cursor over a raw RFB client, resolutions, desktop screenshots, script mode and `run_script` control flow, the clipboard with a real X client, the request lock, the generic MCP tools, and humanized mouse, typing, scroll and pause metrics against human thresholds.
+
+### Changed
+
+- The MCP instructions and the `system_type`, `send_key` and `set_clipboard` descriptions tell agents to enter text with `paste_text` and keep `system_type` for a few characters. The actions reference and MCP docs say the same.
+
+### Fixed
+
+- The noVNC viewer kept showing the pointer where it was once viewers had sent no input for about 30 seconds, so someone watching automation saw a frozen cursor. x11vnc's idle napping stopped it from redrawing the cursor; it now runs with `-nonap`. An integration test idles past that point and checks the cursor still moves.
+- `desktop_list_windows` returned a wrong title and WM_CLASS for windows whose WM_CLASS contains a space, such as a second Tk window (`tk #2`), so finding those windows by title failed. Titles now come from a listing without WM_CLASS, and WM_CLASS is read separately.
+
 ## [0.1.0] 2026-11-17
 
 ### Added

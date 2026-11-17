@@ -152,19 +152,96 @@ def register(registry: Registry, desk: Desk) -> None:  # noqa: C901 - one tool p
 
     @tool()
     async def system_double_click(
-        x: int, y: int, w: int | None = None, h: int | None = None
+        x: int,
+        y: int,
+        w: int | None = None,
+        h: int | None = None,
+        duration: float | None = None,
+        speed: float | None = None,
+        curvature: float | None = None,
+        tremor: float | None = None,
+        click_hold: float | None = None,
+        click_delay: float | None = None,
     ) -> str:
-        """Double-click at screen coordinates with human motion and timing."""
-        return text_result(await call("system_double_click", x=x, y=y, w=w, h=h))
+        """Double-click at screen coordinates with human motion and timing.
+
+        Both clicks land inside the toolkit's double-click time. Takes the
+        same optional mouse overrides as system_click.
+        """
+        return text_result(
+            await call(
+                "system_double_click",
+                x=x,
+                y=y,
+                w=w,
+                h=h,
+                duration=duration,
+                speed=speed,
+                curvature=curvature,
+                tremor=tremor,
+                click_hold=click_hold,
+                click_delay=click_delay,
+            )
+        )
 
     @tool()
-    async def system_right_click(x: int, y: int, w: int | None = None, h: int | None = None) -> str:
-        """Right-click at screen coordinates with human motion and timing."""
-        return text_result(await call("system_right_click", x=x, y=y, w=w, h=h))
+    async def system_right_click(
+        x: int,
+        y: int,
+        w: int | None = None,
+        h: int | None = None,
+        duration: float | None = None,
+        speed: float | None = None,
+        curvature: float | None = None,
+        tremor: float | None = None,
+        click_hold: float | None = None,
+        click_delay: float | None = None,
+    ) -> str:
+        """Right-click at screen coordinates with human motion and timing.
+
+        Takes the same optional mouse overrides as system_click.
+        """
+        return text_result(
+            await call(
+                "system_right_click",
+                x=x,
+                y=y,
+                w=w,
+                h=h,
+                duration=duration,
+                speed=speed,
+                curvature=curvature,
+                tremor=tremor,
+                click_hold=click_hold,
+                click_delay=click_delay,
+            )
+        )
 
     @tool()
-    async def system_drag(source_x: int, source_y: int, target_x: int, target_y: int) -> str:
-        """Press at the source point, drag along a human path and release at the target."""
+    async def system_drag(
+        source_x: int,
+        source_y: int,
+        target_x: int,
+        target_y: int,
+        speed: float | None = None,
+        curvature: float | None = None,
+        tremor: float | None = None,
+        click_hold: float | None = None,
+        click_delay: float | None = None,
+    ) -> str:
+        """Press at the source point, drag along a human path and release at the target.
+
+        Args:
+            source_x: Screen X to press at.
+            source_y: Screen Y to press at.
+            target_x: Screen X to release at.
+            target_y: Screen Y to release at.
+            speed: Movement speed multiplier (0.1-10).
+            curvature: Main stroke bend multiplier (0-5, 0 = straight).
+            tremor: Hand tremor amplitude in px (0-5).
+            click_hold: Median seconds the button is held (0.01-5).
+            click_delay: Median seconds between arriving and pressing (0-10).
+        """
         return text_result(
             await call(
                 "system_drag",
@@ -172,6 +249,11 @@ def register(registry: Registry, desk: Desk) -> None:  # noqa: C901 - one tool p
                 source_y=source_y,
                 target_x=target_x,
                 target_y=target_y,
+                speed=speed,
+                curvature=curvature,
+                tremor=tremor,
+                click_hold=click_hold,
+                click_delay=click_delay,
             )
         )
 
@@ -183,11 +265,67 @@ def register(registry: Registry, desk: Desk) -> None:  # noqa: C901 - one tool p
         h: int | None = None,
         duration: float | None = None,
         speed: float | None = None,
+        curvature: float | None = None,
+        tremor: float | None = None,
     ) -> str:
-        """Move the mouse to screen coordinates with human motion, without clicking."""
+        """Move the mouse to screen coordinates with human-like movement (no click).
+
+        Use to hover over things (open menus, show tooltips).
+
+        Args:
+            x: Screen X coordinate.
+            y: Screen Y coordinate.
+            w: Target width; the pointer lands inside the target.
+            h: Target height.
+            duration: Scale the movement to this many seconds.
+            speed: Movement speed multiplier (0.1-10).
+            curvature: Main stroke bend multiplier (0-5, 0 = straight).
+            tremor: Hand tremor amplitude in px (0-5).
+        """
         return text_result(
-            await call("mouse_move", x=x, y=y, w=w, h=h, duration=duration, speed=speed)
+            await call(
+                "mouse_move",
+                x=x,
+                y=y,
+                w=w,
+                h=h,
+                duration=duration,
+                speed=speed,
+                curvature=curvature,
+                tremor=tremor,
+            )
         )
+
+    @tool()
+    async def paste_text(
+        text: str,
+        x: int | None = None,
+        y: int | None = None,
+        w: int | None = None,
+        h: int | None = None,
+        replace: bool = True,
+    ) -> str:
+        """Enter text the way people do: paste it, with human key timing.
+
+        The default way to put text into a field. Puts the text on the
+        clipboard, clicks the field when x and y are given, then presses
+        ctrl+a, backspace and ctrl+v with human timing and irregular pauses
+        between them. Use system_type only for a few characters.
+
+        For GUI text fields, where ctrl+a selects all and ctrl+v pastes.
+        Terminals use other keys; type there with system_type or run the
+        command with run_command.
+
+        Args:
+            text: The text to enter, up to 1 MiB.
+            x: Optional screen X of the field to click first.
+            y: Optional screen Y of the field to click first.
+            w: Field width; the click lands at a human offset inside it.
+            h: Field height.
+            replace: Select all and clear before pasting (default true).
+                False pastes at the caret.
+        """
+        return text_result(await call("paste_text", text=text, x=x, y=y, w=w, h=h, replace=replace))
 
     @tool()
     async def system_type(
@@ -198,7 +336,13 @@ def register(registry: Registry, desk: Desk) -> None:  # noqa: C901 - one tool p
         key_hold: float | None = None,
         rollover: float | None = None,
     ) -> str:
-        """Type text into the focused window with real keystrokes and human timing.
+        """Type a few characters into the focused window with human keystrokes.
+
+        For short input only: a word, a short search, a small edit, a
+        one-line command, or a field that blocks pasting. People rarely type
+        anything longer; they paste it. Use paste_text for everything else:
+        it puts the text on the clipboard and presses ctrl+a, backspace and
+        ctrl+v with human timing.
 
         Focus the target first, for example with system_click. Characters
         outside the US layout are typed too.
@@ -225,7 +369,18 @@ def register(registry: Registry, desk: Desk) -> None:  # noqa: C901 - one tool p
 
     @tool()
     async def send_key(key: str, key_hold: float | None = None, instant: bool = False) -> str:
-        """Send a key or combo such as "enter", "ctrl+a" or "alt+f4" (PyAutoGUI names)."""
+        """Press a key or combo with human timing.
+
+        Examples: "enter", "tab", "escape", "backspace", "ctrl+a", "ctrl+v",
+        "alt+f4", "win+left". To enter text, use paste_text instead of
+        chaining clipboard and key presses yourself.
+
+        Args:
+            key: Key name or combo using PyAutoGUI key names.
+            key_hold: Median seconds the key is held (0.01-2).
+            instant: Press and release at once with no human timing. Easy to
+                tell apart from a person; leave it false.
+        """
         return text_result(await call("send_key", key=key, key_hold=key_hold, instant=instant))
 
     @tool()
@@ -253,21 +408,49 @@ def register(registry: Registry, desk: Desk) -> None:  # noqa: C901 - one tool p
         w: int | None = None,
         h: int | None = None,
         drift: bool = True,
+        drift_interval: float | None = None,
+        drift_distance: float | None = None,
+        speed: float | None = None,
+        curvature: float | None = None,
+        tremor: float | None = None,
     ) -> str:
-        """Pause for visible reading or thinking time, with sparse pointer drift.
+        """Pause for visible reading, review, or composition.
 
-        Use only when the task naturally needs that time, not between every action.
+        The pointer stays still most of the time. When drift is enabled, zero
+        or a few irregular moves use the same human mouse profile as other OS
+        input. Use this only when the visible task naturally needs thought or
+        reading time. Do not call it between every action or instead of sleep.
 
         Args:
-            duration: Seconds, 0.1 through 300.
-            x: Optional screen X centre of a region to keep the pointer in.
-            y: Optional screen Y centre of that region.
-            w: Region width, 4 through 10000.
-            h: Region height, 4 through 10000.
-            drift: Allow small irregular pointer moves. Default true.
+            duration: Pause duration in seconds, from 0.1 through 300.
+            x: Optional screen X centre of a safe parking region.
+            y: Optional screen Y centre of a safe parking region.
+            w: Safe region width in pixels, from 4 through 10000.
+            h: Safe region height in pixels, from 4 through 10000.
+            drift: Allow sparse irregular pointer drift. Default true.
+            drift_interval: Median seconds between drift chances, from 1
+                through 120. Default 12.
+            drift_distance: Maximum drift distance in pixels, from 0 through
+                500. Default 60.
+            speed: Movement speed multiplier, from 0.1 through 10.
+            curvature: Main stroke bend multiplier, from 0 through 5.
+            tremor: Hand tremor amplitude in pixels, from 0 through 5.
         """
         return text_result(
-            await call("human_pause", duration=duration, x=x, y=y, w=w, h=h, drift=drift)
+            await call(
+                "human_pause",
+                duration=duration,
+                x=x,
+                y=y,
+                w=w,
+                h=h,
+                drift=drift,
+                drift_interval=drift_interval,
+                drift_distance=drift_distance,
+                speed=speed,
+                curvature=curvature,
+                tremor=tremor,
+            )
         )
 
     @tool()
@@ -423,13 +606,39 @@ def register(registry: Registry, desk: Desk) -> None:  # noqa: C901 - one tool p
 
     @tool()
     async def set_clipboard(text: str) -> str:
-        """Replace the X11 clipboard with UTF-8 text up to 1 MiB."""
+        """Replace the X11 clipboard with UTF-8 text up to 1 MiB.
+
+        To enter text into a field, use paste_text, which sets the clipboard
+        and pastes with human timing in one call.
+        """
         return text_result(await call("set_clipboard", text=text))
 
     @tool()
     async def get_clipboard(format: str = "text") -> str:
         """Read text, html, image/png or files from the X11 clipboard."""
         return text_result(await call("get_clipboard", format=format))
+
+    @tool()
+    async def set_clipboard_data(
+        format: str,
+        text: str | None = None,
+        content_base64: str | None = None,
+        files: list[str] | None = None,
+    ) -> str:
+        """Set HTML, PNG, or file-list clipboard data.
+
+        Use `text` for `html`, `content_base64` for `image/png`, and `files`
+        for `files`. Use set_clipboard for ordinary UTF-8 text.
+        """
+        return text_result(
+            await call(
+                "set_clipboard",
+                format=format,
+                text=text,
+                content_base64=content_base64,
+                files=files,
+            )
+        )
 
     @tool()
     async def get_events(

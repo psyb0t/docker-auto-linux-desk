@@ -41,6 +41,12 @@ DEFAULT_MCP_INSTRUCTIONS = (
     "opening a terminal, tiling windows to screen halves, maximize, "
     "fullscreen, minimize, close and window switching; call "
     "desktop_keybindings once to get them, then press them with send_key. "
+    "TEXT INPUT: people paste far more than they type. Enter text with "
+    "paste_text: it puts the text on the clipboard, clicks the field when "
+    "given x and y, and presses ctrl+a, backspace and ctrl+v with human "
+    "timing. Use system_type only for a few characters: a word, a short "
+    "search, a small edit, a one-line command, or a field that blocks "
+    "pasting. Never pass instant to send_key. "
     "Use run_script to execute multi-step workflows atomically."
 )
 

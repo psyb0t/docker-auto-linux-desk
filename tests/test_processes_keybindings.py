@@ -107,13 +107,22 @@ def test_launch_list_and_kill() -> None:
 
 def test_wmctrl_output_parsing() -> None:
     listing = (
-        "0x01200004  0 0     102  140  400  300  tk.Tk  host probe win\n"
-        "0x01400003  0 4321  0    0    800  600  xterm.XTerm  host \n"
+        "0x01200004  0 0     102  140  400  300  host probe win\n"
+        "0x01400003  0 4321  0    0    800  600  host \n"
+        "0x01600005  0 0     10   20   300  200  N/A focus front\n"
+    )
+    # WM_CLASS may contain spaces: Tk names its second instance "tk #2".
+    classes = (
+        "0x01200004  0 tk.Tk  host probe win\n"
+        "0x01400003  0 xterm.XTerm  host \n"
+        "0x01600005  0 tk #2.Tk  N/A focus front\n"
     )
 
     def fake_run(argv: list[str]) -> str:
         if argv[0] == "xdotool":
             return "18874372\n"
+        if "-x" in argv:
+            return classes
         return listing
 
     with patch.object(windows, "_run", side_effect=fake_run):
@@ -131,6 +140,9 @@ def test_wmctrl_output_parsing() -> None:
             "active": True,
         }
         assert found[1]["pid"] == 4321 and found[1]["title"] == ""
+        assert found[1]["wm_class"] == "xterm.XTerm"
+        assert found[2]["wm_class"] == "tk #2.Tk" and found[2]["title"] == "focus front"
+        assert windows.resolve_window({"title": "focus front"})["id"] == "0x01600005"
         assert windows.resolve_window({"title": "PROBE"})["id"] == "0x01200004"
         assert windows.resolve_window({"pid": 4321})["wm_class"] == "xterm.XTerm"
         assert windows.resolve_window({"id": "0x1400003"})["pid"] == 4321

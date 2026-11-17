@@ -54,7 +54,7 @@ All input goes through XTest with human timing: curved paths with overshoot and 
 | `mouse_click` | optional `x`, `y` and the mouse overrides | Without coordinates, clicks where the pointer is. |
 | `system_mouse_down`, `system_mouse_up` | `button` (`left`, `right`, `middle`), optional `x`, `y` | Press or release one button. |
 | `system_drag` | `source_x`, `source_y`, `target_x`, `target_y`; mouse overrides | Press, move along a human path, release. |
-| `system_type` | `text` required; `interval`, `typos`, `typo_rate`, `key_hold`, `rollover` | Types into the focused window. `\n` presses Enter and `\t` presses Tab. Characters outside the US layout are typed through their keysyms. |
+| `system_type` | `text` required; `interval`, `typos`, `typo_rate`, `key_hold`, `rollover` | For a few characters only: a word, a short search, a small edit, a one-line command, or a field that blocks pasting. Types into the focused window. `\n` presses Enter and `\t` presses Tab. Characters outside the US layout are typed through their keysyms. |
 | `send_key` | `key` required; `key_hold`, `instant` | A key or combo in PyAutoGUI names: `enter`, `esc`, `ctrl+a`, `alt+f4`, `win+left`. `instant` skips human timing. |
 | `scroll` | `amount` (non-zero, negative scrolls down, default -3); `x`, `y`, `notch_gap` | Wheel notches, after moving to `x`, `y` when given. |
 | `human_pause` | `duration` (0.1 to 300); `x`, `y`, `w`, `h`, `drift`, `drift_interval`, `drift_distance`, mouse overrides | A visible pause with sparse pointer drift inside the screen or the given region. |
@@ -62,6 +62,18 @@ All input goes through XTest with human timing: curved paths with overshoot and 
 Override ranges: `speed` 0.1 to 10 (a multiplier), `curvature` 0 to 5, `tremor` 0 to 5 px, `click_hold` 0.01 to 5 s, `click_delay` 0 to 10 s, `key_hold` 0.01 to 2 s, `rollover` 0 to 1, `typo_rate` 0 to 0.2, `notch_gap` 0.015 to 5 s.
 
 Window manager shortcuts are pressed with `send_key`. [Keyboard shortcuts](keyboard.md) lists them.
+
+### Entering text
+
+People paste far more than they type. `paste_text` enters text the way a person pastes it: it puts the text on the clipboard, clicks the field when `x` and `y` are given, then presses `ctrl+a`, `backspace` and `ctrl+v` through the humanized `send_key`, with irregular pauses between the keys and before the first key after the click.
+
+| Action | Parameters | Notes |
+| --- | --- | --- |
+| `paste_text` | `text` required (up to 1 MiB); `x`, `y`, `w`, `h` and the mouse overrides to click the field first; `replace` (default `true`) | `replace: false` skips select-all and clear and pastes at the caret. Returns `pasted_len`, `replaced`, and `clicked_at` and `landed_at` when it clicked. |
+
+It is meant for GUI text fields (browsers, GTK, Qt), where `ctrl+a` selects all and `ctrl+v` pastes. Terminals bind those keys differently (in xterm and shells `ctrl+a` moves to the line start), so type into a terminal with `system_type` or run the command with `run_command`.
+
+Keep `system_type` for a few characters: a word, a short search, a small edit, a one-line command, or a field that blocks pasting. Typing a paragraph key by key is slow and is not what a person does.
 
 ## Windows
 

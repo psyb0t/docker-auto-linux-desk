@@ -125,7 +125,10 @@ VNC_LISTEN_PORT="${VNC_LISTEN_PORT:-5900}"
 HTTP_LISTEN_HOST="${HTTP_LISTEN_HOST:-0.0.0.0}"
 HTTP_LISTEN_PORT="${HTTP_LISTEN_PORT:-8080}"
 
-x11vnc -display :99 -rfbport 5901 -nopw -forever -shared \
+# -nonap: by default x11vnc "naps" when viewers send no input for a while and
+# then stops redrawing the cursor, so someone watching automation over noVNC
+# sees it frozen in the wrong place.
+x11vnc -display :99 -rfbport 5901 -nopw -forever -shared -nonap \
     -listen "$VNC_LISTEN_HOST" "${VNC_CURSOR_ARGS[@]}" &
 PIDS+=($!)
 sleep 0.3

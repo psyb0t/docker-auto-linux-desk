@@ -104,11 +104,16 @@ start_event_logger() {
     local title="$2"
     desk_sh "rm -f $log" >/dev/null
     post "{\"action\":\"launch_app\",\"command\":[\"python3\",\"$TEST_APPS/event_logger.py\",\"$log\",\"$title\"]}" >/dev/null
+    local id
     for ((i = 0; i < 50; i += 1)); do
         if desk_sh "grep -c mapped $log 2>/dev/null || true" | grep -q '^[1-9]'; then
-            post "{\"action\":\"desktop_list_windows\"}" |
-                python3 -c "import sys,json; print([w['id'] for w in json.load(sys.stdin)['data']['windows'] if w['title']=='$title'][0])"
-            return 0
+            # The window can be mapped before the window manager lists it.
+            id=$(post "{\"action\":\"desktop_list_windows\"}" |
+                python3 -c "import sys,json; print(next((w['id'] for w in json.load(sys.stdin)['data']['windows'] if w['title']=='$title'), ''))")
+            if [ -n "$id" ]; then
+                echo "$id"
+                return 0
+            fi
         fi
         sleep 0.2
     done

@@ -56,18 +56,50 @@ def active_window_id() -> str | None:
     return _normalize_id(output) if output.isdigit() else None
 
 
+def _classes(host_titles: dict[str, tuple[str, str]]) -> dict[str, str]:
+    """WM_CLASS per window id from `wmctrl -l -x`.
+
+    WM_CLASS can contain spaces (Tk names its second instance "tk #2"), so it
+    is not a whitespace field. Each line is "id desktop CLASS host title",
+    and the host and title are known from the plain listing, so the class is
+    what lies between the desktop number and " host title".
+    """
+    classes = {}
+    for line in _run(["wmctrl", "-l", "-x"]).splitlines():
+        parts = line.split(None, 2)
+        if len(parts) < 3:
+            continue
+        normalized = _normalize_id(parts[0])
+        host, title = host_titles.get(normalized, ("", ""))
+        rest = parts[2]
+        suffix = f" {host} {title}".rstrip() if host else ""
+        if suffix and rest.rstrip().endswith(suffix):
+            rest = rest.rstrip()[: -len(suffix)]
+        else:
+            rest = rest.split(None, 1)[0]
+        classes[normalized] = rest.strip()
+    return classes
+
+
 def list_windows() -> list[dict[str, Any]]:
     """Managed windows with geometry, owning pid, WM_CLASS and title."""
     active = active_window_id()
-    windows = []
-    for line in _run(["wmctrl", "-l", "-p", "-G", "-x"]).splitlines():
-        parts = line.split(None, 9)
-        if len(parts) < 9:
+    rows = []
+    host_titles: dict[str, tuple[str, str]] = {}
+    # Without -x every column before the title is a single token: id, desktop,
+    # pid, x, y, width, height and the client host, which has no spaces.
+    for line in _run(["wmctrl", "-l", "-p", "-G"]).splitlines():
+        parts = line.split(None, 8)
+        if len(parts) < 8:
             continue
-        window_id, desktop, pid, x, y, width, height, wm_class = parts[:8]
-        # Column 9 is the client host; the title follows it and may be empty.
-        title = parts[9] if len(parts) > 9 else ""
+        window_id, desktop, pid, x, y, width, height, host = parts[:8]
+        title = parts[8] if len(parts) > 8 else ""
         normalized = _normalize_id(window_id)
+        host_titles[normalized] = (host, title)
+        rows.append((normalized, desktop, pid, x, y, width, height, title))
+    classes = _classes(host_titles)
+    windows = []
+    for normalized, desktop, pid, x, y, width, height, title in rows:
         windows.append(
             {
                 "id": normalized,
@@ -77,7 +109,7 @@ def list_windows() -> list[dict[str, Any]]:
                 "y": int(y),
                 "width": int(width),
                 "height": int(height),
-                "wm_class": wm_class,
+                "wm_class": classes.get(normalized, ""),
                 "title": title,
                 "active": normalized == active,
             }

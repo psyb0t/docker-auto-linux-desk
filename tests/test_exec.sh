@@ -55,6 +55,17 @@ test_exec_disabled() {
     stop_extra_container "$name"
 }
 
+# _auth_code <container> <label> <expected status> <curl args...>
+_auth_code() {
+    local name="$1" label="$2" expected="$3" code
+    shift 3
+    code=$(curl -s -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' "$@")
+    assert_eq "$code" "$expected" "$label" || {
+        stop_extra_container "$name"
+        return 1
+    }
+}
+
 test_auth_token() {
     local name="${CONTAINER_NAME}-auth" base
     base=$(start_extra_container "$name" -e "AUTH_TOKEN=$TEST_TOKEN")
@@ -83,6 +94,23 @@ test_auth_token() {
         stop_extra_container "$name"
         return 1
     }
+    local mcp_init='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"test","version":"0.1"}}}'
+    local ping='{"action":"ping"}' bearer="Authorization: Bearer $TEST_TOKEN"
+    _auth_code "$name" "health without token" 200 "$base/health" || return 1
+    _auth_code "$name" "ping without token" 401 -X POST "$base" -d "$ping" || return 1
+    _auth_code "$name" "wrong token" 401 -X POST "$base" -H "Authorization: Bearer wrong-token-not-a-secret" -d "$ping" || return 1
+    _auth_code "$name" "query parameter beside a valid header" 401 -X POST "$base?auth_token=ignored" -H "$bearer" -d "$ping" || return 1
+    _auth_code "$name" "events without token" 401 "$base/events" || return 1
+    _auth_code "$name" "events cursor validated after auth" 400 -H "$bearer" "$base/events?after_id=999999" || return 1
+    _auth_code "$name" "MCP query token" 401 -X POST "$base/mcp/?auth_token=$TEST_TOKEN" -H 'Accept: application/json, text/event-stream' -d "$mcp_init" || return 1
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$base/mcp/" -H 'Content-Type: application/json' \
+        -H 'Accept: application/json, text/event-stream' -H "Authorization: Bearer $TEST_TOKEN" -d "$mcp_init")
+    [ "$code" != "401" ] || {
+        echo "  FAIL: MCP with the token still returns 401"
+        stop_extra_container "$name"
+        return 1
+    }
+    echo "  OK: MCP with the token accepted (HTTP $code)"
     for ((i = 0; i < 50; i += 1)); do
         grep -q "Ctrl+C to exit" <<<"$(docker logs "$name" 2>&1)" && break
         sleep 0.2

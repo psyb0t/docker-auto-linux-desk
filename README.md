@@ -46,7 +46,7 @@ curl "http://localhost:8080/screenshot/desktop?whLargest=512" -o desk.png
 
 | Area | Actions |
 | --- | --- |
-| Mouse and keyboard | `system_click`, `system_double_click`, `system_right_click`, `system_drag`, `mouse_move`, `scroll`, `system_type`, `send_key`, `human_pause` |
+| Mouse and keyboard | `system_click`, `system_double_click`, `system_right_click`, `system_drag`, `mouse_move`, `scroll`, `paste_text`, `system_type`, `send_key`, `human_pause` |
 | Keyboard shortcuts | `desktop_keybindings` lists the Openbox bindings: terminal, half-screen tiling, maximize, fullscreen, minimize, close, window switching |
 | Windows | `desktop_list_windows`, `desktop_focus_window`, `desktop_move_resize_window`, `desktop_set_window_state`, `desktop_close_window` |
 | Programs and shell | `launch_app`, `list_launched`, `kill_launched`, `run_command` |
