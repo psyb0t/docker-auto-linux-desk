@@ -274,6 +274,7 @@ test_vnc_remote_cursor() {
     [ "$wait_s" -lt "$VNC_NAP_IDLE_SECONDS" ] && wait_s=$VNC_NAP_IDLE_SECONDS
     echo "  idle ${wait_s}s (container up ${uptime}s)"
     sleep "$wait_s"
+    # shellcheck disable=SC2153 # BASE is the shared container's URL from tests/common.sh.
     _vnc_cursor_case "after-idle" "$BASE" "$(container_ip "$CONTAINER_NAME")" true || return 1
     for entry in "default||true" "true|true|true" "false|false|false"; do
         IFS='|' read -r label setting visible <<<"$entry"

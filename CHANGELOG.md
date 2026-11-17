@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.2.1] 2026-11-17
+
+v0.2.0 was tagged but never published: a ShellCheck finding in the new VNC cursor test failed the lint job, so no image or release was built. v0.2.1 is the first published release with everything listed under 0.2.0.
+
+### Fixed
+
+- The VNC cursor test passes ShellCheck.
+
 ## [0.2.0] 2026-11-17
 
 ### Added
