@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.2.2] 2026-11-17
+
+The code is unchanged from 0.2.1. This release republishes the image so the Docker Hub page carries the corrected README.
+
+### Changed
+
+- The README and documentation site present the image as usable on its own for Linux desktop automation as well as a base for derived images.
+- `run_command` and `launch_app` are described as running any command or program they are given, instead of as a shell.
+- The README lists every action. The actions reference documents every action's parameters, defaults, limits and return fields, including screenshot sizing, the events stream, recording modes and clipboard limits. The MCP page lists how each tool differs from its action. The installation, script mode, plugins and development pages fill in the remaining environment variable values, startup checks, script failure cases, registry options and Make targets.
+
 ## [0.2.1] 2026-11-17
 
 v0.2.0 was tagged but never published: a ShellCheck finding in the new VNC cursor test failed the lint job, so no image or release was built. v0.2.1 is the first published release with everything listed under 0.2.0.

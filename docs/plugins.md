@@ -11,7 +11,7 @@ auto-linux-desk works on its own, and it can also be the base of your own image.
 ## A derived image
 
 ```dockerfile
-FROM psyb0t/auto-linux-desk:v0.2.1
+FROM psyb0t/auto-linux-desk:v0.2.2
 
 USER root
 RUN apt-get update \
