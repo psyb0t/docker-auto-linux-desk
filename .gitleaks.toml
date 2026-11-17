@@ -1,0 +1,33 @@
+title = "auto-linux-desk secret scanning"
+
+[extend]
+useDefault = true
+
+# `gitleaks dir` scans the working tree rather than Git's tracked-file set.
+# These paths are ignored local state, so they can never ship.
+[[allowlists]]
+description = "Ignored local state and release tooling"
+paths = [
+  '''(^|/)__pycache__(?:/|$)''',
+  '''(^|/)\.mypy_cache(?:/|$)''',
+  '''(^|/)\.ruff_cache(?:/|$)''',
+  '''(^|/)\.testing(?:/|$)''',
+  '''(^|/)tests/results(?:/|$)''',
+  '''(^|/)\.plan(?:/|$)''',
+  '''(^|/)\.research_files(?:/|$)''',
+  '''(^|/)\.brutal_reviews(?:/|$)''',
+  '''(^|/)\.telemetry(?:/|$)''',
+  '''(^|/)CLAUDE\.md$''',
+  '''(^|/)\.claude(?:/|$)''',
+  '''(^|/)git-update\.sh$''',
+  '''(^|/)sec\.sarif$''',
+]
+
+# Visibly fake documentation and test values, not credentials.
+[[allowlists]]
+description = "Explicit fake token examples"
+regexes = [
+  '''change-me''',
+  '''integration-token-not-a-secret''',
+  '''unit-test-token-not-a-secret''',
+]

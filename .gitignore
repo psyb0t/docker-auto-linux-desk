@@ -1,0 +1,33 @@
+__pycache__/
+*.egg-info/
+build/
+dist/
+.mypy_cache/
+.ruff_cache/
+.testing/
+tests/results/
+sec.sarif
+git-update.sh
+git-update.sh.debot
+.plan/
+
+# Agent and editor scratch
+CLAUDE.md
+.claude
+CODEX.local.md
+.agent_notes/
+.agent_knowledge/
+.research_files/
+.brutal_reviews/
+.telemetry/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Editor and local runtime files
+.vscode/
+.idea/
+.venv/
+*.local.json

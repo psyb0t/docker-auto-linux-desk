@@ -1,0 +1,177 @@
+#!/bin/bash
+
+# Target user: PUID/PGID env vars, or the image user (1000).
+TARGET_UID="${PUID:-1000}"
+TARGET_GID="${PGID:-$TARGET_UID}"
+DESK_HOME="${DESK_HOME:-/home/desk}"
+DESK_WRITABLE_DIRS="${DESK_WRITABLE_DIRS:-/userdata /recordings}"
+DESK_BANNER="${DESK_BANNER:-AUTO-LINUX-DESK}"
+DESK_HOOK_DIR="${DESK_HOOK_DIR:-/etc/auto-linux-desk/entrypoint.d}"
+export DESK_HOME TARGET_UID TARGET_GID
+
+# Fix ownership of writable dirs (runs as root).
+_fix_perms() {
+    local dir
+    read -ra dirs <<<"$DESK_WRITABLE_DIRS"
+    for dir in "${dirs[@]}"; do
+        [ -d "$dir" ] || continue
+
+        # Skip only when nothing inside belongs to someone else. Checking the
+        # directory alone missed files copied in by another user, such as a
+        # saved profile, which the app then could not rewrite.
+        if [ -z "$(find "$dir" \( ! -user "$TARGET_UID" -o ! -group "$TARGET_GID" \) -print -quit)" ]; then
+            continue
+        fi
+
+        chown -R "$TARGET_UID:$TARGET_GID" "$dir"
+    done
+
+    # The home directory holds caches and window manager config, whichever
+    # UID runs the app.
+    if [ -d "$DESK_HOME" ] &&
+        [ "$(stat -c '%u:%g' "$DESK_HOME")" != "$TARGET_UID:$TARGET_GID" ]; then
+        chown -R "$TARGET_UID:$TARGET_GID" "$DESK_HOME"
+    fi
+}
+
+# Root hooks from images built on this one, in filename order. They are
+# sourced, so they see TARGET_UID, TARGET_GID and DESK_HOME.
+_run_hooks() {
+    local hook
+    [ -d "$DESK_HOOK_DIR" ] || return 0
+    for hook in "$DESK_HOOK_DIR"/*.sh; do
+        [ -f "$hook" ] || continue
+        # shellcheck disable=SC1090
+        . "$hook"
+    done
+}
+
+if [ "$(id -u)" = "0" ]; then
+    _fix_perms
+    _run_hooks
+    # Drop privileges and re-exec this script as the target user.
+    exec gosu "$TARGET_UID:$TARGET_GID" env HOME="$DESK_HOME" "$0" "$@"
+fi
+
+# Already non-root (docker --user): ownership fixes and hooks were skipped.
+export HOME="${HOME:-$DESK_HOME}"
+
+case "${VNC_SHOW_CURSOR:-true}" in
+    true)
+        VNC_CURSOR_ARGS=(-nocursorshape)
+        ;;
+    false)
+        VNC_CURSOR_ARGS=(-nocursor)
+        ;;
+    *)
+        echo "VNC_SHOW_CURSOR must be true or false" >&2
+        exit 1
+        ;;
+esac
+
+PIDS=()
+
+cleanup() {
+    echo "" >&2
+    echo "[*] Shutting down..." >&2
+    for pid in "${PIDS[@]}"; do
+        kill "$pid" 2>/dev/null
+    done
+    wait
+    echo "[*] Done." >&2
+    exit "${EXIT_CODE:-0}"
+}
+
+trap cleanup SIGINT SIGTERM SIGHUP EXIT
+
+# Detect script mode before anything prints to stdout.
+SCRIPT_MODE=false
+for arg in "$@"; do
+    if [ "$arg" = "--script" ]; then
+        SCRIPT_MODE=true
+        break
+    fi
+done
+
+# --script reads YAML from stdin. Save it before background processes can
+# consume stdin.
+if [ "$SCRIPT_MODE" = "true" ]; then
+    _STDIN_FILE=$(mktemp /tmp/script-stdin-XXXXXX.yaml)
+    cat >"$_STDIN_FILE"
+    set -- --script "$_STDIN_FILE"
+    # Keep real stdout for the server's JSON; send shell noise to stderr.
+    exec 3>&1 1>&2
+fi
+
+# The framebuffer MUST be allocated at XVFB_RESOLUTION up front. Xvfb's root
+# framebuffer is fixed at the size given to `-screen 0 WxHxD`, and xrandr can
+# only switch to modes that fit inside it. Recording and screenshots beyond
+# that size would fail with "Capture area ... outside the screen size".
+if [ -z "$DISPLAY" ] || [ "$DISPLAY" = ":99" ]; then
+    DEPTH="${XVFB_DEPTH:-24}"
+    RES="${XVFB_RESOLUTION:-1920x1080}"
+    Xvfb :99 -screen 0 "${RES}x${DEPTH}" -ac +extension GLX +render -noreset &
+    PIDS+=($!)
+    export DISPLAY=:99
+    sleep 0.5
+
+    openbox &
+    PIDS+=($!)
+    sleep 0.3
+fi
+
+VNC_LISTEN_HOST="${VNC_LISTEN_HOST:-0.0.0.0}"
+VNC_LISTEN_PORT="${VNC_LISTEN_PORT:-5900}"
+HTTP_LISTEN_HOST="${HTTP_LISTEN_HOST:-0.0.0.0}"
+HTTP_LISTEN_PORT="${HTTP_LISTEN_PORT:-8080}"
+
+x11vnc -display :99 -rfbport 5901 -nopw -forever -shared \
+    -listen "$VNC_LISTEN_HOST" "${VNC_CURSOR_ARGS[@]}" &
+PIDS+=($!)
+sleep 0.3
+
+websockify --web /usr/share/novnc "$VNC_LISTEN_HOST:$VNC_LISTEN_PORT" localhost:5901 &
+PIDS+=($!)
+sleep 0.3
+
+if [ "$SCRIPT_MODE" = "true" ]; then
+    python -m autolinuxdesk "$@" 1>&3 &
+else
+    python -m autolinuxdesk "$@" &
+fi
+SESSION_PID=$!
+PIDS+=("$SESSION_PID")
+
+if [ "$SCRIPT_MODE" = "false" ]; then
+    for ((attempt = 0; attempt < 30; attempt += 1)); do
+        if curl -s "http://localhost:${HTTP_LISTEN_PORT}/health" >/dev/null 2>&1; then
+            break
+        fi
+        sleep 0.2
+    done
+
+    echo ""
+    echo "=============================================="
+    echo "  ${DESK_BANNER}"
+    echo "=============================================="
+    echo ""
+    echo "  VNC:  http://${VNC_LISTEN_HOST}:${VNC_LISTEN_PORT}/"
+    echo "  API:  http://${HTTP_LISTEN_HOST}:${HTTP_LISTEN_PORT}"
+    echo ""
+    case "${DESK_EXEC_ENABLED:-true}" in
+        1 | true | yes | on)
+            if [ -z "${AUTH_TOKEN// /}" ]; then
+                echo "  WARNING: run_command and launch_app are enabled"
+                echo "  and AUTH_TOKEN is unset. Do not expose the API port."
+                echo ""
+            fi
+            ;;
+    esac
+    echo "  Ctrl+C to exit"
+    echo "=============================================="
+    echo ""
+fi
+
+# Wait for the server to exit and keep its exit code.
+wait $SESSION_PID
+EXIT_CODE=$?
