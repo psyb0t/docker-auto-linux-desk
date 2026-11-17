@@ -6,7 +6,7 @@ nav_order: 5
 
 # Script mode
 
-Pipe a YAML script into the container with `--script`. It starts the desktop, runs the steps, prints one JSON document on stdout and exits. There is no HTTP server in this mode. Logs go to stderr.
+Pipe a YAML script into the container with `--script`. It starts the desktop, runs the steps, prints one JSON document on stdout and exits. There is no HTTP API or MCP in this mode; noVNC still runs if you publish port 5900 and want to watch. Logs go to stderr.
 
 ```bash
 docker run --rm -i \
@@ -14,7 +14,7 @@ docker run --rm -i \
   psyb0t/auto-linux-desk --script < script.yaml > result.json
 ```
 
-The exit code is 0 when every step succeeded and 1 otherwise. The same format runs on a live server through the `run_script` action, with `steps` as a list or `yaml` as a string.
+The exit code is 0 when every step succeeded and 1 otherwise. A script that is not valid YAML or fails validation exits 1 before any step runs, with the reason on stderr and nothing on stdout. The same format runs on a live server through the `run_script` action, with `steps` as a list or `yaml` as a string.
 
 ## Format
 
@@ -38,9 +38,10 @@ steps:
           output_id: shot
 ```
 
-- Any action from the [actions reference](api.md) can be a step, with its parameters beside `action`.
-- `output_id` collects a step's `data` under `outputs`. Screenshots are collected as `data:image/png;base64,...` strings.
-- `${env.NAME}` is replaced with the container's environment variable, or an empty string.
+- `name` is optional and defaults to `unnamed`. `steps` is required.
+- Any action from the [actions reference](api.md) can be a step, with its parameters beside `action`, plugin actions included.
+- `output_id` collects a successful step's `data` under `outputs`. Screenshots are collected as `data:image/png;base64,...` strings.
+- `${env.NAME}` anywhere in a step's string values is replaced with the container's environment variable, or an empty string.
 - `on_error: stop` (the default) ends at the first failed step; `continue` runs the rest.
 
 ## Control nodes
@@ -51,7 +52,9 @@ steps:
 | `repeat` | `count` (up to 100) and `steps` |
 | `while` | `condition`, `max_iterations` (required, up to 100) and `steps` |
 
-A top-level condition can wait: add `timeout` (up to 60 seconds) and it is polled until it matches. Nested conditions cannot set one.
+A `while` loop whose condition still matches after `max_iterations` fails with `while loop reached max_iterations`. Control nodes appear in `step_results` with their nested results under `data`.
+
+A top-level condition can wait: add `timeout` (up to 60 seconds) and it is polled every 0.1 seconds until it matches. Nested conditions cannot set one.
 
 | Condition `type` | Fields |
 | --- | --- |
@@ -93,4 +96,4 @@ Nesting is limited to 8 levels, and a script runs at most 1000 steps inside loop
 }
 ```
 
-This output is shortened; real step results carry every field the action returns.
+This output is shortened; each step result is the action's full response (`success`, `timestamp`, `data`, and `error` when it failed) plus `step`, `action` and `duration`. `outputs` is left out when no step set `output_id`.

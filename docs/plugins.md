@@ -6,12 +6,12 @@ nav_order: 6
 
 # Plugins and derived images
 
-auto-linux-desk is a base image. A derived image adds its software and a Python plugin that registers more actions. [stealthy-auto-browse](https://github.com/psyb0t/docker-stealthy-auto-browse) works this way: it adds a browser and its browser actions on top of the base desktop actions.
+auto-linux-desk works on its own, and it can also be the base of your own image. A derived image installs its software and a Python plugin that registers actions for it, next to the desktop actions. A browser image, for example, adds the browser and actions that drive it.
 
 ## A derived image
 
 ```dockerfile
-FROM psyb0t/auto-linux-desk:v0.1.0
+FROM psyb0t/auto-linux-desk:v0.2.1
 
 USER root
 RUN apt-get update \
@@ -77,7 +77,7 @@ An action handler is `async (cmd, desk) -> dict`. Return `ok(data)` or `fail(err
 | `set_mcp_identity(name, instructions)` | Change the MCP server name and instructions. |
 | `set_mcp_mode("full" or "script_only")` | `script_only` exposes only `run_script`. |
 | `register_route(method, path, handler)` | Add an HTTP route; the handler is a FastAPI endpoint. Auth applies. |
-| `register_screenshot(name, provider)` | Serve `GET /screenshot/<name>` from `async provider(desk, query_params) -> bytes`. |
+| `register_screenshot(name, provider, replace=False)` | Serve `GET /screenshot/<name>` from `async provider(desk, query_params) -> bytes`. Raising `ActionError` returns 400. |
 | `register_state(provider)` | Merge `async provider(desk) -> dict` into `GET /state`. |
 | `register_health(check)` | `async check(desk) -> {"ok": bool, ...}`; any false answer makes `/health` return 503. |
 | `register_request_guard(guard)` | `guard(action, cmd)` returns an error string to refuse a `POST /` request, or `None`. |

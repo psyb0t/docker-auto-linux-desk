@@ -5,9 +5,9 @@
 [![license](https://raw.githubusercontent.com/psyb0t/docker-auto-linux-desk/badges/license.svg)](LICENSE)
 [![Docker Pulls](https://img.shields.io/docker/pulls/psyb0t/auto-linux-desk?style=flat-square)](https://hub.docker.com/r/psyb0t/auto-linux-desk)
 
-A virtual Linux desktop in Docker that you drive over HTTP or MCP. One container runs Xvfb, the Openbox window manager, a noVNC viewer and an API that moves the real mouse with human motion, types with human rhythm, presses window manager shortcuts, arranges windows, starts programs, runs shell commands, reads the clipboard, takes screenshots and records the screen.
+A virtual Linux desktop in Docker that you drive over HTTP or MCP. One container runs Xvfb, the Openbox window manager, a noVNC viewer and an API that moves the real mouse with human motion, types with human rhythm, presses window manager shortcuts, arranges windows, starts programs, runs shell commands, reads and writes the clipboard, takes screenshots and records the screen.
 
-It is also the base image for [stealthy-auto-browse](https://github.com/psyb0t/docker-stealthy-auto-browse), which adds a stealth browser through the plugin interface.
+Use it as it is for Linux desktop automation, or build your own image on it: a plugin adds actions for the software you install, such as a browser.
 
 ## Quick start
 
@@ -40,20 +40,23 @@ curl -X POST http://localhost:8080 \
 curl "http://localhost:8080/screenshot/desktop?whLargest=512" -o desk.png
 ```
 
-`run_command` and `launch_app` give whoever reaches port 8080 a shell in the container. Set `AUTH_TOKEN` before exposing the port anywhere but loopback, or set `DESK_EXEC_ENABLED=false` to turn both off. See [installation and security](https://psyb0t.github.io/docker-auto-linux-desk/installation/).
+`run_command` runs any command it is given and `launch_app` starts any program. With no `AUTH_TOKEN`, anyone who can reach port 8080 can run commands in the container. Set `AUTH_TOKEN` before exposing the port beyond loopback, or set `DESK_EXEC_ENABLED=false` to turn both off. See [installation and security](https://psyb0t.github.io/docker-auto-linux-desk/installation/).
 
 ## What it can do
 
 | Area | Actions |
 | --- | --- |
-| Mouse and keyboard | `system_click`, `system_double_click`, `system_right_click`, `system_drag`, `mouse_move`, `scroll`, `paste_text`, `system_type`, `send_key`, `human_pause` |
+| Mouse | `system_click`, `system_double_click`, `system_right_click`, `mouse_click`, `mouse_move`, `system_hover`, `system_mouse_down`, `system_mouse_up`, `system_drag`, `scroll`, `human_pause` |
+| Keyboard | `paste_text`, `system_type`, `send_key` |
 | Keyboard shortcuts | `desktop_keybindings` lists the Openbox bindings: terminal, half-screen tiling, maximize, fullscreen, minimize, close, window switching |
 | Windows | `desktop_list_windows`, `desktop_focus_window`, `desktop_move_resize_window`, `desktop_set_window_state`, `desktop_close_window` |
 | Programs and shell | `launch_app`, `list_launched`, `kill_launched`, `run_command` |
-| Screen | `desktop_screenshot`, `get_resolution`, `start_recording`, `stop_recording` |
-| Other | clipboard, events, human handoff, `run_script`, `list_actions` |
+| Screen | `desktop_screenshot`, `get_resolution`, `start_recording`, `stop_recording`, `recording_status` |
+| Clipboard | `set_clipboard`, `get_clipboard` (text, HTML, PNG, file lists) |
+| Events and handoff | `get_events`, `wait_for_event`, `begin_handoff`, `handoff_status`, `end_handoff` |
+| Scripts and utility | `run_script`, `list_actions`, `ping`, `sleep`, `close` |
 
-Input coordinates are screen pixels. The timing is modelled on published human mouse and typing data and sent through XTest, so every X client sees ordinary input events.
+Input coordinates are screen pixels. Input is sent through XTest, so every X client sees ordinary input events, with mouse paths, click timing and typing rhythm shaped like a person's.
 
 ## MCP
 
@@ -61,7 +64,7 @@ Input coordinates are screen pixels. The timing is modelled on published human m
 claude mcp add --transport http desk http://localhost:8080/mcp/
 ```
 
-Every action has an MCP tool or is reachable through `desk_action`. The server instructions point agents at `desktop_keybindings` so they can use shortcuts as well as shell commands.
+Most actions have their own MCP tool, and `desk_action` runs any action by name. The server instructions tell agents to use window manager shortcuts from `desktop_keybindings`, to enter text with `paste_text`, and to keep `system_type` for a few characters.
 
 ## Script mode
 
@@ -69,11 +72,11 @@ Every action has an MCP tool or is reachable through `desk_action`. The server i
 docker run --rm -i psyb0t/auto-linux-desk --script < script.yaml
 ```
 
-The container runs the YAML steps, prints one JSON document on stdout and exits with 0 or 1.
+The container runs the YAML steps, prints one JSON document on stdout and exits with 0 when every step succeeded, 1 otherwise.
 
 ## Building on it
 
-Derived images set `AUTO_LINUX_DESK_PLUGINS` to Python modules whose `register(registry)` adds or replaces actions, MCP tools, routes, screenshots, state, health checks and lifecycle hooks. See [plugins and derived images](https://psyb0t.github.io/docker-auto-linux-desk/plugins/).
+Derived images install their software and set `AUTO_LINUX_DESK_PLUGINS` to Python modules whose `register(registry)` adds or replaces actions, MCP tools, routes, screenshots, state, health checks and lifecycle hooks. See [plugins and derived images](https://psyb0t.github.io/docker-auto-linux-desk/plugins/).
 
 ## Documentation
 

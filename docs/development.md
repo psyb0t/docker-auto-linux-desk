@@ -11,13 +11,16 @@ Every check runs in Docker through the Makefile. Run `make help` for the full li
 | Command | Does |
 | --- | --- |
 | `make build` | Build `psyb0t/auto-linux-desk:latest`. |
+| `make build-test` | Build the test-tagged image. |
 | `make dev-image` | Build the runtime image and a development image on top of it with ruff, shellcheck, the Docker CLI and the security tools. |
+| `make shell` | Open a shell in the development image. |
 | `make lint` | ruff check, ruff format check and shellcheck. |
 | `make format`, `make lint-fix` | Apply ruff formatting and safe fixes. |
 | `make test-unit` | Every `tests/test_*.py` in a read-only container. |
 | `make test` | Build a test image and run the integration suite in `test.sh` against real containers. Pass names to run some: `make test TEST_ARGS="test_keybindings test_run_command"`. |
 | `make sec` | semgrep, bandit and pip-audit, merged into `sec.sarif`. |
 | `make docs-build` | Build this site with the GitHub Pages image into `.testing/docs-site`. |
+| `make clean` | Remove this project's local images. |
 
 ## Layout
 

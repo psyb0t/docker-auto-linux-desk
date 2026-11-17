@@ -9,9 +9,9 @@ seo:
 
 # auto-linux-desk
 
-One container runs a virtual X display with the Openbox window manager, an HTTP API, an MCP server and a noVNC viewer. A client sends actions: move and click the real mouse, type with real keystrokes, press window manager shortcuts, list and arrange windows, start programs, run shell commands, read the clipboard, take screenshots and record the screen. You can watch or take over through noVNC at any time.
+One container runs a virtual X display with the Openbox window manager, an HTTP API, an MCP server and a noVNC viewer. A client sends actions: move and click the real mouse, type with real keystrokes, paste text, press window manager shortcuts, list and arrange windows, start programs, run shell commands, read and write the clipboard, take screenshots and record the screen. You can watch or take over through noVNC at any time.
 
-It is also a base image. [stealthy-auto-browse](https://github.com/psyb0t/docker-stealthy-auto-browse) builds on it and adds a stealth browser through the [plugin interface](plugins.md).
+Use it as it is for Linux desktop automation, or build your own image on it and add actions for the software you install through the [plugin interface](plugins.md).
 
 ## Start here
 
@@ -22,7 +22,7 @@ docker run -d --name desk \
   psyb0t/auto-linux-desk:latest
 ```
 
-Open `http://localhost:5900/` for the viewer. Send HTTP commands to `http://localhost:8080/`, or connect an MCP client to `http://localhost:8080/mcp/`. This example listens on loopback only and has no authentication. Read [installation and security](installation.md) before making it reachable from another machine: `run_command` is a shell.
+Open `http://localhost:5900/` for the viewer. Send HTTP commands to `http://localhost:8080/`, or connect an MCP client to `http://localhost:8080/mcp/`. This example listens on loopback only and has no authentication. Read [installation and security](installation.md) before making it reachable from another machine: `run_command` runs any command it is given.
 
 ```bash
 curl --fail-with-body http://localhost:8080/ \
@@ -30,7 +30,7 @@ curl --fail-with-body http://localhost:8080/ \
   -d '{"action":"send_key","key":"ctrl+alt+t"}'
 ```
 
-That opens a terminal with the window manager's shortcut. Type into it with humanized keystrokes:
+That opens a terminal with the window manager's shortcut. Type a short command into it with humanized keystrokes:
 
 ```bash
 curl --fail-with-body http://localhost:8080/ \

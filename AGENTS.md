@@ -4,7 +4,7 @@ Guidance for coding agents working in this repository. Read it and the files in 
 
 ## What this project is
 
-A Docker image that runs a virtual Linux desktop (Xvfb, Openbox, x11vnc, noVNC) and a server, `autolinuxdesk`, that drives it over a JSON HTTP API, MCP and YAML scripts. It is the base image of `psyb0t/stealthy-auto-browse`, which loads a browser plugin through the registry. Treat every action name, parameter, response field, environment variable and registry method as public: derived images and agents depend on them.
+A Docker image that runs a virtual Linux desktop (Xvfb, Openbox, x11vnc, noVNC) and a server, `autolinuxdesk`, that drives it over a JSON HTTP API, MCP and YAML scripts. It works on its own for Linux desktop automation and is also a base image: derived images such as `psyb0t/stealthy-auto-browse` load their plugins through the registry. Treat every action name, parameter, response field, environment variable and registry method as public: derived images and agents depend on them.
 
 ## Ground rules
 
