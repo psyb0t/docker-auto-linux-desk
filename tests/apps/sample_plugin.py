@@ -19,8 +19,9 @@ async def _state(desk: object) -> dict:
     return {"sample": "on"}
 
 
-async def _shot(desk: object, params: dict) -> bytes:
-    return b"\x89PNG-sample"
+async def _shot(desk: object, params: object) -> bytes:
+    frames = params.getlist("frame")
+    return b"\x89PNG-sample" + ",".join(frames).encode()
 
 
 async def _hello() -> PlainTextResponse:

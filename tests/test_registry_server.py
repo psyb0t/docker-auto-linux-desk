@@ -169,6 +169,8 @@ def test_http_auth_and_plugin_surface() -> None:
     state = client.get("/state", headers=headers).json()
     assert state["sample"] == "on" and state["plugins"] == ["sample_plugin"]
     assert client.get("/screenshot/sample", headers=headers).content == b"\x89PNG-sample"
+    repeated = client.get("/screenshot/sample?frame=a&frame=b", headers=headers)
+    assert repeated.content == b"\x89PNG-samplea,b"
     assert client.get("/screenshot/nope", headers=headers).status_code == 404
     assert client.get("/sample/hello", headers=headers).text == "hello from plugin"
     assert "sample_tool" in desk.registry.mcp_tools

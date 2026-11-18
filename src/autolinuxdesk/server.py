@@ -160,7 +160,8 @@ def build_app(desk: Desk) -> FastAPI:  # noqa: C901 - route table
         if provider is None:
             return PlainTextResponse(f"unknown screenshot: {name}", status_code=404)
         try:
-            data = await provider(desk, dict(request.query_params))
+            # QueryParams, so providers can read repeated parameters with getlist.
+            data = await provider(desk, request.query_params)
         except ActionError as error:
             return PlainTextResponse(str(error), status_code=400)
         except Exception as error:

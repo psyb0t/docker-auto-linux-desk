@@ -11,7 +11,7 @@ auto-linux-desk works on its own, and it can also be the base of your own image.
 ## A derived image
 
 ```dockerfile
-FROM psyb0t/auto-linux-desk:v0.2.2
+FROM psyb0t/auto-linux-desk:v0.2.3
 
 USER root
 RUN apt-get update \
@@ -77,7 +77,7 @@ An action handler is `async (cmd, desk) -> dict`. Return `ok(data)` or `fail(err
 | `set_mcp_identity(name, instructions)` | Change the MCP server name and instructions. |
 | `set_mcp_mode("full" or "script_only")` | `script_only` exposes only `run_script`. |
 | `register_route(method, path, handler)` | Add an HTTP route; the handler is a FastAPI endpoint. Auth applies. |
-| `register_screenshot(name, provider, replace=False)` | Serve `GET /screenshot/<name>` from `async provider(desk, query_params) -> bytes`. Raising `ActionError` returns 400. |
+| `register_screenshot(name, provider, replace=False)` | Serve `GET /screenshot/<name>` from `async provider(desk, query_params) -> bytes`. `query_params` is the request's Starlette `QueryParams`: `get()` reads one value, `getlist()` a repeated parameter. Raising `ActionError` returns 400. |
 | `register_state(provider)` | Merge `async provider(desk) -> dict` into `GET /state`. |
 | `register_health(check)` | `async check(desk) -> {"ok": bool, ...}`; any false answer makes `/health` return 503. |
 | `register_request_guard(guard)` | `guard(action, cmd)` returns an error string to refuse a `POST /` request, or `None`. |

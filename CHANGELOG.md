@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.2.3] 2026-11-18
+
+### Fixed
+
+- Screenshot providers registered with `register_screenshot` receive the request's Starlette `QueryParams` instead of a plain dict, so a repeated query parameter such as `frame=a&frame=b` reaches them in full through `getlist()`. `get()` works as before.
+
 ## [0.2.2] 2026-11-17
 
 The code is unchanged from 0.2.1. This release republishes the image so the Docker Hub page carries the corrected README.

@@ -179,7 +179,11 @@ class Registry:
     def register_screenshot(
         self, name: str, provider: ScreenshotProvider, *, replace: bool = False
     ) -> None:
-        """Serve GET /screenshot/<name> from provider(desk, query_params) -> PNG bytes."""
+        """Serve GET /screenshot/<name> from provider(desk, query_params) -> PNG bytes.
+
+        query_params is the request's Starlette QueryParams: get() for one value,
+        getlist() for a repeated parameter.
+        """
         if name in self.screenshots and not replace:
             raise RegistryError(f"screenshot {name!r} is already registered")
         self.screenshots[name] = provider
