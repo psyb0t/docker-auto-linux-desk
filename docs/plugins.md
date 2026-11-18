@@ -8,10 +8,14 @@ nav_order: 7
 
 auto-linux-desk works on its own, and it can also be the base of your own image. A derived image installs its software and a Python plugin that registers actions for it, next to the desktop actions. A browser image, for example, adds the browser and actions that drive it.
 
+## License
+
+auto-linux-desk is licensed under the [AGPL-3.0-only](https://github.com/psyb0t/docker-auto-linux-desk/blob/main/LICENSE). A plugin runs inside the server's Python process, so an image that ships a plugin with auto-linux-desk is a work based on it and must be released under the AGPL-3.0 as well. Programs the image installs and only starts, such as a browser, keep their own licenses. Clients that only call the HTTP or MCP API are not affected.
+
 ## A derived image
 
 ```dockerfile
-FROM psyb0t/auto-linux-desk:v0.2.3
+FROM psyb0t/auto-linux-desk:v0.3.0
 
 USER root
 RUN apt-get update \

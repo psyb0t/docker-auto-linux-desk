@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "autolinuxdesk"
-version = "0.2.3"
+version = "0.3.0"
 description = "Linux desktop automation server: humanized X11 input, window and process control, HTTP and MCP API."
 readme = "README.md"
-license = { text = "WTFPL" }
+license = { text = "AGPL-3.0-only" }
 requires-python = ">=3.12"
 dependencies = [
     "pyautogui",

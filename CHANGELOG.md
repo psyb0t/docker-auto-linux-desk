@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.3.0] 2026-11-18
+
+### Changed
+
+- The license is now the GNU Affero General Public License v3.0 only (AGPL-3.0-only) instead of the WTFPL. Releases up to 0.2.3 keep the WTFPL. A derived image that ships a plugin is a work based on auto-linux-desk and must also be released under the AGPL-3.0; anyone who runs a modified version as a network service must offer its source to its users.
+
+### Documentation
+
+- A [humanized input](https://psyb0t.github.io/docker-auto-linux-desk/humanized-input/) page describes how mouse, typing, wheel and pause input model a person, the defaults, and every tuning option.
+
 ## [0.2.3] 2026-11-18
 
 ### Fixed

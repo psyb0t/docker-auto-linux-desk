@@ -109,4 +109,4 @@ Everything runs in containers. `make help` lists all targets.
 
 ## License
 
-[WTFPL](LICENSE). See the [changelog](CHANGELOG.md) for releases.
+Copyright (C) 2026 Ciprian Mandache. Licensed under the [GNU Affero General Public License v3.0 only](LICENSE) (AGPL-3.0-only). If you run a modified version as a network service, you must offer its source to the people who use it. Releases up to 0.2.3 were published under the WTFPL and keep it. See the [changelog](CHANGELOG.md) for releases.
