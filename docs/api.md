@@ -61,7 +61,7 @@ Input coordinates are screen pixels from the top-left corner. `desktop_list_wind
 
 ## Mouse and keyboard
 
-All input goes through XTest with human timing: curved paths with overshoot and tremor, Fitts's-law durations, lognormal click holds, key-pair dependent typing rhythm with overlapping keys, and spaced wheel notches. Each container samples one typist and one mouse profile at startup and keeps them.
+All input goes through XTest with human timing: curved paths with overshoot and tremor, Fitts's-law durations, lognormal click holds, key-pair dependent typing rhythm with overlapping keys, and spaced wheel notches. Each container samples one typist and one mouse profile at startup and keeps them. [Humanized input](humanized-input.md) explains the model, the defaults and every tuning option.
 
 `x` and `y` must be given together. Numbers may be sent as JSON numbers or numeric strings, except for `human_pause`, which takes JSON numbers only.
 

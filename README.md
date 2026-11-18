@@ -86,6 +86,7 @@ The full documentation is at **[psyb0t.github.io/docker-auto-linux-desk](https:/
 | --- | --- |
 | [Installation and security](https://psyb0t.github.io/docker-auto-linux-desk/installation/) | Ports, environment variables, auth, users, volumes, hooks |
 | [Actions reference](https://psyb0t.github.io/docker-auto-linux-desk/api/) | Every endpoint, action and parameter |
+| [Humanized input](https://psyb0t.github.io/docker-auto-linux-desk/humanized-input/) | The input model, defaults and tuning options |
 | [Keyboard shortcuts](https://psyb0t.github.io/docker-auto-linux-desk/keyboard/) | The window manager bindings |
 | [MCP and agents](https://psyb0t.github.io/docker-auto-linux-desk/mcp/) | Client setup and tools |
 | [Script mode](https://psyb0t.github.io/docker-auto-linux-desk/script-mode/) | YAML format and output |

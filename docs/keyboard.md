@@ -1,7 +1,7 @@
 ---
 title: Keyboard shortcuts
 description: The Openbox key bindings in the image, how to press them with send_key, and how desktop_keybindings reads them from the live config.
-nav_order: 3
+nav_order: 4
 ---
 
 # Keyboard shortcuts

@@ -1,7 +1,7 @@
 ---
 title: Development
 description: Build the image, run lint, unit and Docker-backed integration tests, and the security scan, all inside containers.
-nav_order: 7
+nav_order: 8
 ---
 
 # Development

@@ -60,6 +60,7 @@ curl -o desk.png 'http://localhost:8080/screenshot/desktop?whLargest=1024'
 
 - [Installation and security](installation.md): ports, authentication, users, volumes and the exec switch.
 - [Actions reference](api.md): every endpoint and action with parameters.
+- [Humanized input](humanized-input.md): how mouse, typing, wheel and pause input model a person, and every tuning option.
 - [Keyboard shortcuts](keyboard.md): the window manager bindings and how to press them.
 - [MCP and agents](mcp.md): connecting an MCP client and the tool list.
 - [Script mode](script-mode.md): one-shot YAML scripts with JSON output.

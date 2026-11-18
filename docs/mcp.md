@@ -1,7 +1,7 @@
 ---
 title: MCP and agents
 description: Connect an MCP client to the Streamable HTTP endpoint, authenticate it, and see which tools it gets.
-nav_order: 4
+nav_order: 5
 ---
 
 # MCP and agents

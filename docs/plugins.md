@@ -1,7 +1,7 @@
 ---
 title: Plugins and derived images
 description: Build an image on auto-linux-desk and load Python plugins that add or replace actions, MCP tools, routes, hooks and the input surface.
-nav_order: 6
+nav_order: 7
 ---
 
 # Plugins and derived images
