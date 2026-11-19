@@ -47,6 +47,14 @@ _run_hooks() {
 }
 
 if [ "$(id -u)" = "0" ]; then
+    # D-Bus requires a passwd entry for its UID, including a custom PUID.
+    if ! getent passwd "$TARGET_UID" >/dev/null; then
+        if ! getent group "$TARGET_GID" >/dev/null; then
+            groupadd --gid "$TARGET_GID" "desk-$TARGET_GID" || exit 1
+        fi
+        useradd --uid "$TARGET_UID" --gid "$TARGET_GID" --no-create-home \
+            --home-dir "$DESK_HOME" "desk-$TARGET_UID" || exit 1
+    fi
     _fix_perms
     _run_hooks
     # Drop privileges and re-exec this script as the target user.
@@ -72,6 +80,7 @@ esac
 PIDS=()
 
 cleanup() {
+    local status=$?
     echo "" >&2
     echo "[*] Shutting down..." >&2
     for pid in "${PIDS[@]}"; do
@@ -79,7 +88,7 @@ cleanup() {
     done
     wait
     echo "[*] Done." >&2
-    exit "${EXIT_CODE:-0}"
+    exit "${EXIT_CODE:-$status}"
 }
 
 trap cleanup SIGINT SIGTERM SIGHUP EXIT
@@ -101,6 +110,29 @@ if [ "$SCRIPT_MODE" = "true" ]; then
     set -- --script "$_STDIN_FILE"
     # Keep real stdout for the server's JSON; send shell noise to stderr.
     exec 3>&1 1>&2
+fi
+
+# Share one session bus with apps, the API and the activated AT-SPI2 bus,
+# including when the display is supplied by the caller.
+if [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then
+    DBUS_ENV=$(dbus-launch --sh-syntax) || {
+        echo "ERROR: could not start the D-Bus session bus" >&2
+        exit 1
+    }
+    eval "$DBUS_ENV"
+    export DBUS_SESSION_BUS_ADDRESS
+    PIDS+=("$DBUS_SESSION_BUS_PID")
+fi
+export NO_AT_BRIDGE=0 GNOME_ACCESSIBILITY=1 ACCESSIBILITY_ENABLED=1 \
+    QT_ACCESSIBILITY=1 QT_LINUX_ACCESSIBILITY_ALWAYS_ON=1
+
+# KEYBINDINGS_FILE replaces the whole key map (docs/keyboard.md).
+if [ -n "${KEYBINDINGS_FILE:-}" ]; then
+    python3 /usr/local/lib/auto-linux-desk/configure-openbox.py \
+        /etc/xdg/openbox/rc.xml "$KEYBINDINGS_FILE" "$HOME/.config/openbox/rc.xml" || {
+        echo "ERROR: KEYBINDINGS_FILE=$KEYBINDINGS_FILE is not a valid key map" >&2
+        exit 1
+    }
 fi
 
 # The framebuffer MUST be allocated at XVFB_RESOLUTION up front. Xvfb's root

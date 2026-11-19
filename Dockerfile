@@ -17,11 +17,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         gosu \
     && rm -rf /var/lib/apt/lists/*
 
-# X11 display, VNC and the window manager (title bars and resize handles).
+# X11 display, VNC, the window manager (title bars and resize handles) and the
+# AT-SPI2 accessibility bus that desktop_accessibility_* reads.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         xvfb xauth dbus dbus-x11 x11-xserver-utils xcvt \
         x11vnc novnc websockify \
         openbox \
+        at-spi2-core libatk-adaptor \
     && rm -rf /var/lib/apt/lists/*
 
 # noVNC auto-connect redirect
@@ -48,13 +50,16 @@ RUN groupadd -g 1000 desk && useradd -u 1000 -g 1000 -m desk \
     && mkdir -p /userdata /recordings \
     && chown desk:desk /userdata /recordings
 
-# Openbox config: one desktop, plus terminal, tiling and window-state key
-# bindings. See docker/configure-openbox.py and the desktop_keybindings action.
-COPY docker/configure-openbox.py /tmp/configure-openbox.py
+# Openbox config: one desktop and the key map in docker/keymap.json as the
+# whole keyboard section. The generator stays in the image so the entrypoint
+# can apply KEYBINDINGS_FILE at start. See docs/keyboard.md.
+COPY docker/configure-openbox.py /usr/local/lib/auto-linux-desk/configure-openbox.py
+COPY docker/keymap.json /etc/auto-linux-desk/keymap.json
+COPY --chmod=755 docker/desk-focus /usr/local/bin/desk-focus
 RUN install -d -o desk -g desk /home/desk/.config/openbox \
-    && python3 /tmp/configure-openbox.py /etc/xdg/openbox/rc.xml /home/desk/.config/openbox/rc.xml \
-    && chown desk:desk /home/desk/.config/openbox/rc.xml \
-    && rm /tmp/configure-openbox.py
+    && python3 /usr/local/lib/auto-linux-desk/configure-openbox.py \
+        /etc/xdg/openbox/rc.xml /etc/auto-linux-desk/keymap.json /home/desk/.config/openbox/rc.xml \
+    && chown desk:desk /home/desk/.config/openbox/rc.xml /home/desk/.config/openbox/keymap.json
 
 # Root hooks run by the entrypoint before it drops privileges.
 RUN install -d /etc/auto-linux-desk/entrypoint.d

@@ -56,9 +56,11 @@ test_keybindings() {
 import sys, json
 data = json.load(sys.stdin)['data']
 keys = {b['key']: b for b in data['keybindings']}
-for key in ('C-A-t', 'W-Return', 'W-Left', 'W-Right', 'W-Up', 'A-F4', 'A-Tab'):
+for key in ('C-A-t', 'C-A-Left', 'C-A-Right', 'C-A-m', 'C-A-b', 'C-A-1', 'A-F4', 'A-Tab'):
     assert key in keys, key
+assert not [k for k in keys if 'W-' in k], 'no Super bindings'
 assert keys['C-A-t']['send_key'] == ['ctrl+alt+t']
+assert keys['C-A-t']['group'] == 'Focus'
 assert data['source'].endswith('/.config/openbox/rc.xml'), data['source']
 " || return 1
     echo "  OK: bindings listed"
@@ -78,29 +80,97 @@ assert data['source'].endswith('/.config/openbox/rc.xml'), data['source']
     id=$(post '{"action":"desktop_list_windows"}' | python3 -c "import sys,json; print([w['id'] for w in json.load(sys.stdin)['data']['windows'] if 'XTerm' in w['wm_class']][0])")
     echo "  OK: terminal $id"
     post "{\"action\":\"desktop_focus_window\",\"id\":\"$id\"}" >/dev/null
-    post '{"action":"send_key","key":"win+left"}' >/dev/null
+    post '{"action":"send_key","key":"ctrl+alt+left"}' >/dev/null
     sleep 0.5
     read -r x _ w _ <<<"$(_geometry "$id")"
     if [ "$x" -gt 5 ] || [ "$w" -lt 900 ] || [ "$w" -gt 970 ]; then
-        echo "  FAIL: win+left did not tile left: x=$x w=$w"
+        echo "  FAIL: ctrl+alt+left did not tile left: x=$x w=$w"
         return 1
     fi
     echo "  OK: tiled left"
-    post '{"action":"send_key","key":"win+right"}' >/dev/null
+    post '{"action":"send_key","key":"ctrl+alt+right"}' >/dev/null
     sleep 0.5
     read -r x _ _ _ <<<"$(_geometry "$id")"
     [ "$x" -ge 950 ] || {
-        echo "  FAIL: win+right did not tile right: x=$x"
+        echo "  FAIL: ctrl+alt+right did not tile right: x=$x"
         return 1
     }
     echo "  OK: tiled right"
+    post '{"action":"send_key","key":"ctrl+alt+t"}' >/dev/null
+    sleep 1
+    assert_eq "$(post '{"action":"desktop_list_windows"}' | json_get "['data']['count']")" "$after" \
+        "ctrl+alt+t with a terminal open focuses it, no new window" || return 1
+    post '{"action":"send_key","key":"ctrl+alt+m"}' >/dev/null
+    sleep 0.5
+    read -r x _ w _ <<<"$(_geometry "$id")"
+    [ "$w" -ge 1900 ] || {
+        echo "  FAIL: ctrl+alt+m did not maximize: w=$w"
+        return 1
+    }
+    echo "  OK: maximized"
     post '{"action":"send_key","key":"alt+f4"}' >/dev/null
     sleep 1
     assert_eq "$(window_info "$id")" "" "alt+f4 closed the terminal"
+}
+
+test_accessibility() {
+    local resp
+    resp=$(post '{"action":"desktop_accessibility_tree"}')
+    assert_success "$resp" "desktop_accessibility_tree reaches the AT-SPI bus" || return 1
+    echo "$resp" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)['data']
+assert isinstance(data['apps'], list) and isinstance(data['nodes'], list), data
+assert data['count'] == len(data['nodes'])
+" || return 1
+    echo "  OK: accessibility tree read"
+    assert_failure "$(post '{"action":"desktop_accessibility_find"}')" "find without a query" || return 1
+    assert_failure "$(post '{"action":"desktop_accessibility_action","id":":1.999:/org/a11y/atspi/accessible/1","invoke":0}')" \
+        "action on an element that does not exist" || return 1
+}
+
+test_keymap_override() {
+    local name="${CONTAINER_NAME}-keymap-invalid" base
+    printf '%s\n' '{"bindings":[{"key":"ctrl+alt+z"}]}' >"$RESULTS_DIR/keymap-invalid.json"
+    base=$(start_extra_container "$name" -e KEYBINDINGS_FILE=/keymap.json \
+        -v "$RESULTS_DIR/keymap-invalid.json:/keymap.json:ro")
+    if ! assert_eq "$(docker wait "$name")" "1" "invalid keymap fails startup" ||
+        ! grep -Fq 'ERROR: KEYBINDINGS_FILE=/keymap.json is not a valid key map' <<<"$(docker logs "$name" 2>&1)"; then
+        stop_extra_container "$name"
+        return 1
+    fi
+    stop_extra_container "$name"
+
+    name="${CONTAINER_NAME}-keymap-custom"
+    printf '%s\n' '{"bindings":[{"key":"ctrl+alt+z","group":"Custom","description":"custom close","actions":[{"name":"Close"}]}]}' >"$RESULTS_DIR/keymap-custom.json"
+    base=$(start_extra_container "$name" -e KEYBINDINGS_FILE=/keymap.json \
+        -v "$RESULTS_DIR/keymap-custom.json:/keymap.json:ro")
+    if ! wait_for_api "$base" 60; then
+        docker logs "$name"
+        stop_extra_container "$name"
+        return 1
+    fi
+    if ! post_to "$base" '{"action":"desktop_keybindings"}' | python3 -c '
+import json, sys
+reply = json.load(sys.stdin)
+assert reply["success"], reply
+bindings = reply["data"]["keybindings"]
+assert len(bindings) == 1, bindings
+assert bindings[0]["send_key"] == ["ctrl+alt+z"], bindings
+assert bindings[0]["description"] == "custom close", bindings
+assert bindings[0]["group"] == "Custom", bindings
+'; then
+        stop_extra_container "$name"
+        return 1
+    fi
+    stop_extra_container "$name"
+    echo "  OK: custom keymap replaces and describes the whole map"
 }
 
 ALL_TESTS+=(
     test_window_actions
     test_launch_and_kill
     test_keybindings
+    test_accessibility
+    test_keymap_override
 )

@@ -1,7 +1,7 @@
 ---
 title: MCP and agents
 description: Connect an MCP client to the Streamable HTTP endpoint, authenticate it, and see which tools it gets.
-nav_order: 5
+nav_order: 6
 ---
 
 # MCP and agents
@@ -42,6 +42,7 @@ Each tool runs the action of the same name with the same parameters, except wher
 | `system_type` | `system_type`. Giving `typo_rate` turns `typos` on. |
 | `send_key` | `send_key` |
 | `desktop_list_windows`, `desktop_focus_window`, `desktop_move_resize_window`, `desktop_set_window_state`, `desktop_close_window`, `desktop_keybindings` | The window actions. |
+| `desktop_accessibility_tree`, `desktop_accessibility_find`, `desktop_accessibility_action` | The [accessibility tree](accessibility.md): dump, find and act on app widgets. |
 | `launch_app`, `kill_launched`, `run_command` | The program actions. |
 | `list_launched` | `list_launched` with `output` only. |
 | `set_clipboard` | `set_clipboard` with `text` only. |
@@ -53,6 +54,6 @@ Each tool runs the action of the same name with the same parameters, except wher
 
 The [actions reference](api.md) documents every parameter, default and return field.
 
-The server is named `auto-linux-desk`. Its MCP instructions tell agents that coordinates are screen pixels from the top-left corner, to pass `whLargest=512` to screenshots, to call `desktop_list_windows` before clicking into windows, to call `desktop_keybindings` once and press the shortcuts with `send_key`, to enter text with `paste_text` and keep `system_type` for a few characters, never to pass `instant` to `send_key`, and to use `run_script` for multi-step work.
+The server is named `auto-linux-desk`. Its MCP instructions tell agents that coordinates are screen pixels from the top-left corner, to pass `whLargest=512` to screenshots, to call `desktop_list_windows` before clicking into windows, to call `desktop_keybindings` once and press its keys with `send_key` instead of moving windows through the API, that the default map has no Super-key binding, to find exported controls with `desktop_accessibility_tree` and `desktop_accessibility_find` and use screenshots when controls are not exposed, to enter text with `paste_text` and keep `system_type` for a few characters, never to pass `instant` to `send_key`, and to use `run_script` for multi-step work.
 
 Plugins can add, replace or remove tools and change the instructions. A plugin can also switch the server to script-only mode, where `run_script` is the only tool; see [plugins](plugins.md).

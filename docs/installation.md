@@ -49,13 +49,14 @@ The API can run any command in the container. `run_command` runs any command it 
 | `VNC_LISTEN_HOST`, `VNC_LISTEN_PORT` | `0.0.0.0`, `5900` | noVNC listen address inside the container. |
 | `LOG_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING` or `ERROR`, for the JSON logs on stderr. |
 | `LOG_FILE` | unset | Also write logs to this file, rotated at 10 MiB with 5 old files kept. |
+| `KEYBINDINGS_FILE` | unset | A key map file in the format of [`docker/keymap.json`](https://github.com/psyb0t/docker-auto-linux-desk/blob/main/docker/keymap.json) that replaces the whole map at startup. An invalid map stops startup. See [keyboard shortcuts](keyboard.md#replacing-the-key-map). |
 | `DESK_LAUNCH_LOG_DIR` | `/tmp/auto-linux-desk/launched` | Where `launch_app` writes each program's output. |
 | `AUTO_LINUX_DESK_PLUGINS` | unset | Comma-separated Python modules to load as [plugins](plugins.md). |
 | `DESK_HOME`, `DESK_WRITABLE_DIRS`, `DESK_BANNER` | `/home/desk`, `/userdata /recordings`, `AUTO-LINUX-DESK` | Set by derived images; see [plugins and derived images](plugins.md). |
 
 ## Users and volumes
 
-The desktop runs as `desk` (UID and GID 1000, home `/home/desk`). The entrypoint starts as root, gives `/userdata`, `/recordings` and the home directory to `PUID` and `PGID` when anything in them belongs to someone else, runs the [hooks](#entrypoint-hooks), then drops to that UID and GID. Started with `docker run --user`, it skips the ownership fixes and the hooks and runs as the given user.
+The desktop runs as `desk` (UID and GID 1000, home `/home/desk`). The entrypoint starts as root, creates an account for a custom `PUID` if needed by D-Bus, gives `/userdata`, `/recordings` and the home directory to `PUID` and `PGID` when anything in them belongs to someone else, runs the [hooks](#entrypoint-hooks), then drops to that UID and GID. Started with `docker run --user`, it skips account creation, ownership fixes and hooks. The given UID must already have a passwd entry for D-Bus to start.
 
 | Path | Holds |
 | --- | --- |

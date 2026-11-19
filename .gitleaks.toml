@@ -30,4 +30,8 @@ regexes = [
   '''change-me''',
   '''integration-token-not-a-secret''',
   '''unit-test-token-not-a-secret''',
+  # Key map entries: a "key" field holding a keyboard shortcut such as
+  # ctrl+alt+shift+down, which the generic-api-key rule mistakes for a key.
+  # Allowlist regexes match the captured secret value.
+  '''^(?:(?:ctrl|alt|shift|win)\+)+[a-z0-9]+$''',
 ]

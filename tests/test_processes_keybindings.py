@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import asyncio
+import importlib.machinery
+import importlib.util
 import json
 import os
 import subprocess
 import sys
 import tempfile
 import time
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from unittest.mock import patch
 
@@ -170,28 +173,220 @@ def test_send_key_names_from_openbox_notation() -> None:
     assert keybindings.to_send_key("Print") == "printscreen"
 
 
-def test_configured_rc_xml_has_the_desk_bindings() -> None:
+def _configure(target: str, keymap: str | None = None) -> None:
+    subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "docker" / "configure-openbox.py"),
+            _STOCK_RC,
+            keymap or str(ROOT / "docker" / "keymap.json"),
+            target,
+        ],
+        check=True,
+    )
+
+
+def test_openbox_notation_round_trips_to_send_key() -> None:
+    spec = importlib.util.spec_from_file_location(
+        "configure_openbox", ROOT / "docker" / "configure-openbox.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    for send_key in (
+        "ctrl+alt+shift+left",
+        "alt+f4",
+        "ctrl+alt+1",
+        "ctrl+alt+esc",
+        "alt+shift+tab",
+        "ctrl+alt+space",
+    ):
+        assert keybindings.to_send_key(module.openbox_key(send_key)) == send_key, send_key
+    assert module.openbox_key("shift+alt+ctrl+t") == "C-A-S-t"
+
+
+def test_custom_key_map_validation_and_metadata() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        source = Path(tmp) / "stock.xml"
+        source.write_text(
+            '<openbox_config xmlns="http://openbox.org/3.4/rc">'
+            "<desktops><number>4</number></desktops><keyboard>"
+            "<chainQuitKey>C-g</chainQuitKey>"
+            '<keybind key="W-x"><action name="Close"/></keybind>'
+            "</keyboard></openbox_config>",
+            encoding="utf-8",
+        )
+        keymap = Path(tmp) / "custom.json"
+        target = Path(tmp) / "rc.xml"
+
+        def configure(data: object) -> subprocess.CompletedProcess:
+            keymap.write_text(json.dumps(data), encoding="utf-8")
+            return subprocess.run(
+                [
+                    sys.executable,
+                    str(ROOT / "docker" / "configure-openbox.py"),
+                    str(source),
+                    str(keymap),
+                    str(target),
+                ],
+                capture_output=True,
+                text=True,
+            )
+
+        binding = {
+            "key": "alt+ctrl+escape",
+            "description": "custom description",
+            "group": "Custom",
+            "actions": [{"name": "Close"}],
+        }
+        result = configure({"bindings": [binding]})
+        assert result.returncode == 0, result.stderr
+        listing = keybindings.list_keybindings(str(target))
+        assert listing["count"] == 1
+        assert listing["keybindings"][0]["description"] == "custom description"
+        assert listing["keybindings"][0]["group"] == "Custom"
+        keyboard = ET.parse(target).getroot().find("o:keyboard", keybindings.NS)
+        assert [child.tag.split("}")[-1] for child in keyboard] == ["keybind"]
+        valid_xml = target.read_bytes()
+        for data in (
+            [],
+            None,
+            {},
+            {"bindings": {}},
+            {"bindings": None},
+            {"bindings": [None]},
+            {"bindings": [{**binding, "key": "ctrl+ctrl+x"}]},
+            {"bindings": [{**binding, "description": "   "}]},
+            {"bindings": [{**binding, "group": 1}]},
+            {"bindings": [{**binding, "actions": [None]}]},
+            {"bindings": [{**binding, "actions": [{"name": ""}]}]},
+            {"bindings": [{**binding, "actions": [{"name": "Close", "options": []}]}]},
+            {"bindings": [{**binding, "actions": [{"name": "Close", "options": {"a<b": "x"}}]}]},
+            {"bindings": [{**binding, "actions": [{"name": "Close", "options": {"x": 1}}]}]},
+        ):
+            result = configure(data)
+            assert result.returncode != 0, data
+            assert "Traceback" not in result.stderr, result.stderr
+            assert target.read_bytes() == valid_xml
+        assert configure({"bindings": []}).returncode == 0
+        assert keybindings.list_keybindings(str(target))["count"] == 0
+
+
+def test_desk_focus_handles_classes_slots_and_absent_matches() -> None:
+    loader = importlib.machinery.SourceFileLoader("desk_focus", str(ROOT / "docker" / "desk-focus"))
+    spec = importlib.util.spec_from_loader(loader.name, loader)
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    rows = [
+        {"id": "0x01", "desktop": 0, "wm_class": "tk.Tk"},
+        {"id": "0x02", "desktop": -1, "wm_class": "panel.Panel"},
+        {"id": "0x03", "desktop": 0, "wm_class": "tk #2.Tk"},
+    ]
+    with (
+        patch.object(module, "list_windows", return_value=rows),
+        patch.object(module, "focus") as focus,
+    ):
+        for args, wanted in (
+            (["--class", r"tk #2\.Tk"], "0x03"),
+            (["--class", "tk"], "0x03"),
+            (["--slot", "1"], "0x01"),
+            (["--slot", "2"], "0x03"),
+        ):
+            with patch.object(sys, "argv", ["desk-focus", *args]):
+                assert module.main() == 0
+                focus.assert_called_with(wanted)
+        focus.reset_mock()
+        for args in (["--class", "browser"], ["--slot", "3"]):
+            with patch.object(sys, "argv", ["desk-focus", *args]):
+                assert module.main() == 1
+                focus.assert_not_called()
+        with (
+            patch.object(sys, "argv", ["desk-focus", "--class", "browser", "--launch", "app"]),
+            patch.object(module.subprocess, "Popen") as launch,
+        ):
+            assert module.main() == 0
+            launch.assert_called_once_with(
+                ["app"],
+                start_new_session=True,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        for args in (["--slot", "0"], ["--class", "["]):
+            with patch.object(sys, "argv", ["desk-focus", *args]):
+                try:
+                    module.main()
+                except SystemExit as error:
+                    assert error.code == 2
+                else:
+                    raise AssertionError(f"accepted {args}")
+
+
+def test_the_key_map_is_the_whole_keyboard_section() -> None:
+    if not os.path.isfile(_STOCK_RC):
+        print("skip: no stock Openbox rc.xml")
+        return
+    keymap = json.loads((ROOT / "docker" / "keymap.json").read_text(encoding="utf-8"))["bindings"]
+    with tempfile.TemporaryDirectory() as tmp:
+        target = os.path.join(tmp, "rc.xml")
+        _configure(target)
+        listing = keybindings.list_keybindings(target)
+        assert os.path.isfile(os.path.join(tmp, "keymap.json"))
+    listed = [item["send_key"][0] for item in listing["keybindings"]]
+    assert sorted(listed) == sorted(binding["key"] for binding in keymap), (
+        "stock bindings must not survive"
+    )
+    assert not [key for key in listed if "win" in key], "no binding may use the Super key"
+    by_key = {item["send_key"][0]: item for item in listing["keybindings"]}
+    assert by_key["ctrl+alt+left"]["description"] == "tile the focused window to the left half"
+    assert (
+        by_key["ctrl+alt+t"]["description"] == "focus the terminal, or open one if none is running"
+    )
+    assert by_key["ctrl+alt+t"]["group"] == "Focus"
+    assert all(item["description"] for item in listing["keybindings"])
+
+
+def test_a_bad_key_map_is_refused() -> None:
     if not os.path.isfile(_STOCK_RC):
         print("skip: no stock Openbox rc.xml")
         return
     with tempfile.TemporaryDirectory() as tmp:
-        target = os.path.join(tmp, "rc.xml")
-        subprocess.run(
-            [sys.executable, str(ROOT / "docker" / "configure-openbox.py"), _STOCK_RC, target],
-            check=True,
-        )
-        listing = keybindings.list_keybindings(target)
-    by_key = {item["key"]: item for item in listing["keybindings"]}
-    assert by_key["C-A-t"]["description"] == "run x-terminal-emulator"
-    assert by_key["W-Return"]["send_key"] == ["win+enter"]
-    assert by_key["W-Left"]["description"] == "tile the focused window to the left half"
-    assert by_key["W-Right"]["description"] == "tile the focused window to the right half"
-    assert by_key["W-Up"]["description"] == "maximize the focused window"
-    assert by_key["A-F4"]["description"] == "close the focused window"
-    assert by_key["W-S-Up"]["description"] == "focus the nearest window above"
-    assert "C-A-Left" not in by_key, "desktop switching should be removed"
-    assert "W-e" not in by_key and "Print" not in by_key
-    assert all(item["description"] for item in listing["keybindings"])
+        bad = os.path.join(tmp, "bad.json")
+        for bindings in (
+            [{"key": "ctrl+alt+x", "description": "x", "actions": [{"name": "Close"}]}] * 2,
+            [{"key": "hyper+x", "description": "x", "actions": [{"name": "Close"}]}],
+            [{"key": "ctrl+alt+x", "description": "", "actions": [{"name": "Close"}]}],
+        ):
+            Path(bad).write_text(json.dumps({"bindings": bindings}), encoding="utf-8")
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(ROOT / "docker" / "configure-openbox.py"),
+                    _STOCK_RC,
+                    bad,
+                    os.path.join(tmp, "rc.xml"),
+                ],
+                capture_output=True,
+                text=True,
+            )
+            assert result.returncode != 0, bindings
+
+
+def test_the_keyboard_doc_lists_exactly_the_key_map() -> None:
+    table = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "docker" / "configure-openbox.py"),
+            "--markdown",
+            str(ROOT / "docker" / "keymap.json"),
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    doc = (ROOT / "docs" / "keyboard.md").read_text(encoding="utf-8")
+    assert table in doc, (
+        "docs/keyboard.md is out of date: paste the output of configure-openbox.py --markdown docker/keymap.json"
+    )
 
 
 def main() -> None:

@@ -95,7 +95,7 @@ The mouse overrides change the session's mouse profile for one request:
 
 ### send_key
 
-`key` is a key name or a combo joined with `+`, in PyAutoGUI names: `enter`, `esc`, `tab`, `backspace`, `ctrl+a`, `alt+f4`, `win+left`, `ctrl+shift+t`. Modifiers go down in order with short human gaps, the last key is held, then all are released in reverse order.
+`key` is a key name or a combo joined with `+`, in PyAutoGUI names: `enter`, `esc`, `tab`, `backspace`, `ctrl+a`, `alt+f4`, `ctrl+alt+left`, `ctrl+shift+t`. Modifiers go down in order with short human gaps, the last key is held, then all are released in reverse order.
 
 - `key_hold` (0.01 to 2): median seconds the last key is held.
 - `instant` (default `false`): press and release every key at once, with no human timing. It cannot be combined with `key_hold`.
@@ -160,9 +160,19 @@ Each window action except `desktop_list_windows` and `desktop_keybindings` picks
 | `desktop_move_resize_window` | selector; at least one of `x`, `y`, `width`, `height` (integers; `width` and `height` at least 1) | `window`, `requested`. Restores a maximized window first. Omitted values stay. |
 | `desktop_set_window_state` | selector; `state` | `window`, `state`. `state` is `maximize`, `unmaximize`, `fullscreen`, `unfullscreen`, `minimize`, `unminimize`, `above` or `unabove`. |
 | `desktop_close_window` | selector | `window`. Asks the window to close, as its close button would. |
-| `desktop_keybindings` | none | The window manager shortcuts; see [keyboard shortcuts](keyboard.md). |
+| `desktop_keybindings` | none | The desktop's complete key map; see [keyboard shortcuts](keyboard.md). |
 
 The `window` in each return is the window as it was before the action. Geometry comes from wmctrl and includes the frame offset Openbox adds, so a window placed at `100,100` can report a slightly different `x` and `y`.
+
+## Accessibility
+
+| Action | Parameters | What it does |
+| --- | --- | --- |
+| `desktop_accessibility_tree` | `app`, `max_depth`, `max_nodes`, `showing_only` | The widgets of the desktop's apps over AT-SPI2: role, name, states, screen bounds, actions, text and value per node. |
+| `desktop_accessibility_find` | `name`, `role`, `states`, `exact`, plus the tree's parameters | The nodes that match. |
+| `desktop_accessibility_action` | `id`, and exactly one of `invoke`, `set_text`, `focus` | Runs a node's action, replaces an editable node's text, or focuses it, without moving the mouse. |
+
+See [accessibility tree](accessibility.md) for the fields, examples and which apps export a tree.
 
 ## Programs and shell commands
 
@@ -216,7 +226,7 @@ The server keeps the last 1000 events in memory. Each has `id`, `type`, `timesta
 
 `activity` is `null` unless a plugin counts human input during the handoff.
 
-During a handoff only these actions run: `ping`, `list_actions`, `sleep`, `get_events`, `wait_for_event`, `handoff_status`, `end_handoff`, `recording_status`, `get_resolution`, `desktop_screenshot`, `desktop_list_windows`, `desktop_keybindings` and `list_launched`. Everything else fails with `human handoff is active`.
+During a handoff only these actions run: `ping`, `list_actions`, `sleep`, `get_events`, `wait_for_event`, `handoff_status`, `end_handoff`, `recording_status`, `get_resolution`, `desktop_screenshot`, `desktop_list_windows`, `desktop_keybindings`, `desktop_accessibility_tree`, `desktop_accessibility_find` and `list_launched`. Everything else fails with `human handoff is active`.
 
 ## Scripts and utility
 

@@ -48,7 +48,8 @@ curl "http://localhost:8080/screenshot/desktop?whLargest=512" -o desk.png
 | --- | --- |
 | Mouse | `system_click`, `system_double_click`, `system_right_click`, `mouse_click`, `mouse_move`, `system_hover`, `system_mouse_down`, `system_mouse_up`, `system_drag`, `scroll`, `human_pause` |
 | Keyboard | `paste_text`, `system_type`, `send_key` |
-| Keyboard shortcuts | `desktop_keybindings` lists the Openbox bindings: terminal, half-screen tiling, maximize, fullscreen, minimize, close, window switching |
+| Keyboard shortcuts | One complete key map with no Super-key bindings: half and quarter tiling, maximize, fullscreen, minimize, close, focus by app, by number and by direction, terminal. `desktop_keybindings` lists it, and `KEYBINDINGS_FILE` replaces it |
+| Accessibility tree | `desktop_accessibility_tree`, `desktop_accessibility_find` and `desktop_accessibility_action` read and act on controls an app exposes through AT-SPI2, like uiautomator |
 | Windows | `desktop_list_windows`, `desktop_focus_window`, `desktop_move_resize_window`, `desktop_set_window_state`, `desktop_close_window` |
 | Programs and shell | `launch_app`, `list_launched`, `kill_launched`, `run_command` |
 | Screen | `desktop_screenshot`, `get_resolution`, `start_recording`, `stop_recording`, `recording_status` |
@@ -87,7 +88,8 @@ The full documentation is at **[psyb0t.github.io/docker-auto-linux-desk](https:/
 | [Installation and security](https://psyb0t.github.io/docker-auto-linux-desk/installation/) | Ports, environment variables, auth, users, volumes, hooks |
 | [Actions reference](https://psyb0t.github.io/docker-auto-linux-desk/api/) | Every endpoint, action and parameter |
 | [Humanized input](https://psyb0t.github.io/docker-auto-linux-desk/humanized-input/) | The input model, defaults and tuning options |
-| [Keyboard shortcuts](https://psyb0t.github.io/docker-auto-linux-desk/keyboard/) | The window manager bindings |
+| [Keyboard shortcuts](https://psyb0t.github.io/docker-auto-linux-desk/keyboard/) | The complete key map, focus helpers and how to replace the map |
+| [Accessibility tree](https://psyb0t.github.io/docker-auto-linux-desk/accessibility/) | Read, find and act on app widgets over AT-SPI2 |
 | [MCP and agents](https://psyb0t.github.io/docker-auto-linux-desk/mcp/) | Client setup and tools |
 | [Script mode](https://psyb0t.github.io/docker-auto-linux-desk/script-mode/) | YAML format and output |
 | [Plugins and derived images](https://psyb0t.github.io/docker-auto-linux-desk/plugins/) | The extension interface |

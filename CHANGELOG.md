@@ -2,6 +2,28 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.4.0] 2026-11-19
+
+### Added
+
+- **Accessibility tree, like uiautomator for the desktop.** `desktop_accessibility_tree` reads controls that apps expose over AT-SPI2, the screen-reader protocol: role, name, states, screen bounds, actions, text and value per node. `desktop_accessibility_find` filters them by name, role and states, and `desktop_accessibility_action` runs a node's action, replaces an editable node's text or focuses it, without moving the mouse. They are HTTP actions and MCP tools; the two reads also run during a human handoff. The GTK zenity entry dialog was tested; other apps depend on their AT-SPI2 support and settings. See [Accessibility tree](https://psyb0t.github.io/docker-auto-linux-desk/accessibility/).
+- The image installs `at-spi2-core` and `libatk-adaptor`, starts a D-Bus session bus and activates the AT-SPI2 bus on demand. The entrypoint sets `NO_AT_BRIDGE=0`, `GNOME_ACCESSIBILITY=1`, `ACCESSIBILITY_ENABLED=1`, `QT_ACCESSIBILITY=1` and `QT_LINUX_ACCESSIBILITY_ALWAYS_ON=1`.
+- **`KEYBINDINGS_FILE` replaces the whole key map at startup** with a file in the format of `docker/keymap.json`. An invalid map stops startup. See [Keyboard shortcuts](https://psyb0t.github.io/docker-auto-linux-desk/keyboard/#replacing-the-key-map).
+- **Focus by app and by number.** `ctrl+alt+b` focuses the browser, `ctrl+alt+t` focuses the terminal or opens one, and `ctrl+alt+1` to `ctrl+alt+9` focus windows in the order they opened, through the new `desk-focus` script.
+- Quarter tiling (`ctrl+alt+u`, `i`, `j`, `k`), top and bottom halves, toggle maximize, always on top, and reloading the window manager config.
+- `desktop_keybindings` entries carry a `group` (Place, State, Focus, Open, Desktop), and their descriptions come from the key map.
+
+### Changed
+
+- **The key map is complete and owned, and no default binding uses the Super key.** `docker/keymap.json` is the whole keyboard section of the Openbox config; no stock Openbox binding survives. Every former `win+` binding moved to `ctrl+alt`: `win+left` and `win+right` are now `ctrl+alt+left` and `ctrl+alt+right`, `win+up` is `ctrl+alt+m` (toggle maximize), `win+down` is `ctrl+alt+r`, `win+f` is `ctrl+alt+f`, `win+h` is `ctrl+alt+n`, `win+c` is `ctrl+alt+c`, `win+d` is `ctrl+alt+d`, `win+shift+<arrow>` is `ctrl+alt+shift+<arrow>`, `win+enter` and `ctrl+alt+t` give way to `ctrl+alt+t` (focus or open) and `ctrl+alt+shift+t` (always a new terminal), `alt+space` is `ctrl+alt+space` and `alt+esc` is `ctrl+alt+esc`. `alt+tab`, `alt+shift+tab` and `alt+f4` stay. `ctrl+alt+tab` is gone.
+- The keyboard docs table is generated from the key map, and a test fails when they differ.
+
+### Fixed
+
+- Alt+Tab keeps Openbox's default focus actions, and `desk-focus` handles WM_CLASS values with spaces.
+- Invalid key maps stop startup with a nonzero exit status. Custom PUIDs get the account entry required by D-Bus.
+- Accessibility actions validate their parameters, including empty text and action index zero. Tree walks handle cycles and only report node-limit truncation when a node is omitted.
+
 ## [0.3.0] 2026-11-18
 
 ### Changed

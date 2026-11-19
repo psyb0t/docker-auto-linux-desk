@@ -6,6 +6,7 @@ including bindings an image built on this one adds or removes.
 
 from __future__ import annotations
 
+import json
 import os
 import xml.etree.ElementTree as ET
 from typing import Any
@@ -117,9 +118,49 @@ def _walk(element: ET.Element, prefix: list[str]) -> list[dict[str, Any]]:
     return bindings
 
 
+def _keymap_descriptions(source: str) -> dict[str, dict[str, str]]:
+    """Description and group per send_key, from the keymap.json that
+    configure-openbox.py writes next to rc.xml. Empty when there is none,
+    for example in an image that writes rc.xml another way."""
+    path = os.path.join(os.path.dirname(source), "keymap.json")
+    try:
+        with open(path, encoding="utf-8") as handle:
+            bindings = json.load(handle).get("bindings", [])
+    except (OSError, ValueError):
+        return {}
+    return {
+        "+".join(part.strip().lower() for part in binding.get("key", "").split("+")): {
+            "description": binding.get("description", ""),
+            "group": binding.get("group", ""),
+        }
+        for binding in bindings
+    }
+
+
+def _same_keys(send_key: str) -> str:
+    """send_key with its modifiers in one order, so keymap and rc.xml match."""
+    *mods, key = send_key.split("+")
+    if key == "escape":
+        key = "esc"
+    order = ["ctrl", "alt", "shift", "win"]
+    return "+".join(
+        [*sorted(mods, key=lambda mod: order.index(mod) if mod in order else len(order)), key]
+    )
+
+
 def list_keybindings(path: str | None = None) -> dict[str, Any]:
     source = path or rc_path()
     root = ET.parse(source).getroot()
     keyboard = root.find("o:keyboard", NS)
     bindings = _walk(keyboard, []) if keyboard is not None else []
+    named = {_same_keys(key): value for key, value in _keymap_descriptions(source).items()}
+    for binding in bindings:
+        found = (
+            named.get(_same_keys(binding["send_key"][-1]))
+            if len(binding["send_key"]) == 1
+            else None
+        )
+        if found:
+            binding["description"] = found["description"] or binding["description"]
+            binding["group"] = found["group"]
     return {"source": source, "keybindings": bindings, "count": len(bindings)}

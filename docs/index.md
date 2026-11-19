@@ -49,10 +49,11 @@ curl -o desk.png 'http://localhost:8080/screenshot/desktop?whLargest=1024'
 | Component | Purpose |
 | --- | --- |
 | Xvfb and Openbox | A virtual screen at `XVFB_RESOLUTION` with a window manager for title bars, focus and shortcuts. |
+| D-Bus and AT-SPI2 | A session bus and an accessibility bus for `desktop_accessibility_*` to read the controls apps expose. |
 | x11vnc and noVNC | Watch and control the screen from a browser on port 5900. |
 | Humanized input | Mouse paths, click timing, typing rhythm and wheel notches modelled on human data, sent through XTest. |
 | wmctrl and xdotool | List, focus, move, resize, maximize and close top-level windows. |
-| xterm | The default terminal, opened by `ctrl+alt+t` or `win+enter`. |
+| xterm | The default terminal. `ctrl+alt+t` focuses it or opens one, `ctrl+alt+shift+t` opens another. |
 | ffmpeg, scrot, xclip | Screen recording, screenshots and the X clipboard. |
 | HTTP, MCP and script mode | One action set behind `POST /`, an MCP endpoint at `/mcp/` and YAML scripts on stdin. |
 
@@ -61,7 +62,8 @@ curl -o desk.png 'http://localhost:8080/screenshot/desktop?whLargest=1024'
 - [Installation and security](installation.md): ports, authentication, users, volumes and the exec switch.
 - [Actions reference](api.md): every endpoint and action with parameters.
 - [Humanized input](humanized-input.md): how mouse, typing, wheel and pause input model a person, and every tuning option.
-- [Keyboard shortcuts](keyboard.md): the window manager bindings and how to press them.
+- [Keyboard shortcuts](keyboard.md): the complete key map, how to press it and how to replace it.
+- [Accessibility tree](accessibility.md): read app widgets like uiautomator, find them and act on them.
 - [MCP and agents](mcp.md): connecting an MCP client and the tool list.
 - [Script mode](script-mode.md): one-shot YAML scripts with JSON output.
 - [Plugins and derived images](plugins.md): extending the action set and building images on this one.

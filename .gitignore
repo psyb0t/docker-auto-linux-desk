@@ -31,3 +31,6 @@ CODEX.local.md
 .idea/
 .venv/
 *.local.json
+
+# Cloned reference sources and docs (local only)
+.research_files/

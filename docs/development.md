@@ -1,7 +1,7 @@
 ---
 title: Development
 description: Build the image, run lint, unit and Docker-backed integration tests, and the security scan, all inside containers.
-nav_order: 8
+nav_order: 9
 ---
 
 # Development
@@ -26,9 +26,9 @@ Every check runs in Docker through the Makefile. Run `make help` for the full li
 
 | Path | Holds |
 | --- | --- |
-| [`src/autolinuxdesk/`](https://github.com/psyb0t/docker-auto-linux-desk/tree/main/src/autolinuxdesk) | The server package: registry, actions, MCP tools, input planners and executor, windows, processes, key bindings. |
+| [`src/autolinuxdesk/`](https://github.com/psyb0t/docker-auto-linux-desk/tree/main/src/autolinuxdesk) | The server package: registry, actions, MCP tools, input planners and executor, windows, processes, key bindings and accessibility. |
 | [`entrypoint.sh`](https://github.com/psyb0t/docker-auto-linux-desk/blob/main/entrypoint.sh) | Ownership fixes, root hooks, privilege drop, Xvfb, Openbox, VNC and the server. |
-| [`docker/configure-openbox.py`](https://github.com/psyb0t/docker-auto-linux-desk/blob/main/docker/configure-openbox.py) | Writes the Openbox config and its key bindings at build time. |
+| [`docker/configure-openbox.py`](https://github.com/psyb0t/docker-auto-linux-desk/blob/main/docker/configure-openbox.py) | Writes the Openbox config from `docker/keymap.json` at build time and for a `KEYBINDINGS_FILE` override at startup. Prints the keyboard docs table with `--markdown`. |
 | [`tests/`](https://github.com/psyb0t/docker-auto-linux-desk/tree/main/tests) | Unit tests (`test_*.py`), integration modules (`test_*.sh`) and test apps, including a tk window that logs X input events. |
 
 The integration tests measure humanized input through a real X client: the event logger records pointer motion, button holds, double-click recognition, typed characters and wheel notches, and the tests check them against human ranges.

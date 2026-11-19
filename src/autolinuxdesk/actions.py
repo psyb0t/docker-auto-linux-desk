@@ -13,7 +13,7 @@ from collections.abc import Callable
 
 import yaml
 
-from autolinuxdesk import input_actions, keybindings, processes, windows
+from autolinuxdesk import accessibility, input_actions, keybindings, processes, windows
 from autolinuxdesk.clipboard import ClipboardError
 from autolinuxdesk.desk import Desk
 from autolinuxdesk.events import EventError
@@ -293,6 +293,88 @@ async def desktop_keybindings(cmd: dict, desk: Desk) -> dict:
         return fail(f"window manager config unreadable: {error}")
 
 
+def _int(cmd: dict, key: str, default: int) -> int:
+    value = cmd.get(key, default)
+    if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+        raise accessibility.AccessibilityError(f"{key} must be a positive integer")
+    return value
+
+
+def _accessibility_query(cmd: dict) -> None:
+    for key in ("app", "name", "role"):
+        if cmd.get(key) is not None and not isinstance(cmd[key], str):
+            raise accessibility.AccessibilityError(f"{key} must be a string")
+    for key in ("showing_only", "exact"):
+        if key in cmd and not isinstance(cmd[key], bool):
+            raise accessibility.AccessibilityError(f"{key} must be true or false")
+    states = cmd.get("states")
+    if states is not None and (
+        not isinstance(states, list)
+        or not all(isinstance(state, str) and state in accessibility.STATES for state in states)
+    ):
+        raise accessibility.AccessibilityError("states must be a list of AT-SPI state names")
+
+
+async def desktop_accessibility_tree(cmd: dict, desk: Desk) -> dict:
+    try:
+        _accessibility_query(cmd)
+        return ok(
+            await asyncio.to_thread(
+                accessibility.dump,
+                cmd.get("app"),
+                _int(cmd, "max_depth", accessibility.DEFAULT_MAX_DEPTH),
+                _int(cmd, "max_nodes", accessibility.DEFAULT_MAX_NODES),
+                cmd.get("showing_only", True),
+            )
+        )
+    except accessibility.AccessibilityError as error:
+        return fail(str(error))
+
+
+async def desktop_accessibility_find(cmd: dict, desk: Desk) -> dict:
+    if not any(cmd.get(key) is not None for key in ("name", "role", "states")):
+        return fail("desktop_accessibility_find needs name, role or states")
+    try:
+        _accessibility_query(cmd)
+        _int(cmd, "max_depth", accessibility.DEFAULT_MAX_DEPTH)
+        _int(cmd, "max_nodes", accessibility.DEFAULT_MAX_NODES)
+        return ok(await asyncio.to_thread(accessibility.find, cmd))
+    except accessibility.AccessibilityError as error:
+        return fail(str(error))
+
+
+async def desktop_accessibility_action(cmd: dict, desk: Desk) -> dict:
+    element_id = cmd.get("id")
+    if not isinstance(element_id, str) or not element_id:
+        return fail(
+            "desktop_accessibility_action needs the element id from desktop_accessibility_tree or _find"
+        )
+    # "invoke", not "action": the request's own "action" field names this handler.
+    invoke = cmd.get("invoke")
+    set_text = cmd.get("set_text")
+    focus = cmd.get("focus", False)
+    if invoke is not None and (isinstance(invoke, bool) or not isinstance(invoke, (str, int))):
+        return fail("invoke must be an action name or integer index")
+    if set_text is not None and not isinstance(set_text, str):
+        return fail("set_text must be a string")
+    if not isinstance(focus, bool):
+        return fail("focus must be true or false")
+    if sum((invoke is not None, set_text is not None, focus)) != 1:
+        return fail("pass one of invoke, set_text or focus")
+    try:
+        return ok(
+            await asyncio.to_thread(
+                accessibility.act,
+                element_id,
+                invoke,
+                set_text,
+                focus,
+            )
+        )
+    except accessibility.AccessibilityError as error:
+        return fail(str(error))
+
+
 async def desktop_list_windows(cmd: dict, desk: Desk) -> dict:
     try:
         found = await asyncio.to_thread(windows.list_windows)
@@ -401,6 +483,8 @@ _HANDOFF_SAFE = {
     "desktop_screenshot": desktop_screenshot,
     "desktop_list_windows": desktop_list_windows,
     "desktop_keybindings": desktop_keybindings,
+    "desktop_accessibility_tree": desktop_accessibility_tree,
+    "desktop_accessibility_find": desktop_accessibility_find,
     "list_launched": list_launched,
 }
 
@@ -420,6 +504,7 @@ _OTHER = {
     "kill_launched": kill_launched,
     "run_command": run_command,
     "paste_text": paste_text,
+    "desktop_accessibility_action": desktop_accessibility_action,
 }
 
 

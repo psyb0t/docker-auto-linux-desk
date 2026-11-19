@@ -1,7 +1,7 @@
 ---
 title: Script mode
 description: Pipe a YAML script into a fresh container and get one JSON document back, with environment substitution, outputs, conditions and loops.
-nav_order: 6
+nav_order: 7
 ---
 
 # Script mode

@@ -372,7 +372,7 @@ def register(registry: Registry, desk: Desk) -> None:  # noqa: C901 - one tool p
         """Press a key or combo with human timing.
 
         Examples: "enter", "tab", "escape", "backspace", "ctrl+a", "ctrl+v",
-        "alt+f4", "win+left". To enter text, use paste_text instead of
+        "alt+f4", "ctrl+alt+left". To enter text, use paste_text instead of
         chaining clipboard and key presses yourself.
 
         Args:
@@ -460,15 +460,105 @@ def register(registry: Registry, desk: Desk) -> None:  # noqa: C901 - one tool p
 
     @tool()
     async def desktop_keybindings() -> str:
-        """List the window manager's keyboard shortcuts.
+        """List the desktop's complete key map.
 
-        Each entry has the Openbox key, a send_key value to press it (a list
-        with one entry per press for chained bindings), a description and
-        the raw actions. Covers opening a terminal, tiling windows to a
-        screen half, maximize, fullscreen, minimize, closing and switching
-        windows.
+        Each entry has the Openbox key, a send_key value to press it, a
+        description, a group (Place, State, Focus, Open, Desktop) and the raw
+        actions. It covers tiling to halves and quarters, maximize,
+        fullscreen, minimize, close, focus by app (ctrl+alt+b browser,
+        ctrl+alt+t terminal), by number (ctrl+alt+1..9) and by direction,
+        and opening a terminal. No default binding uses the Super key, so the keys
+        avoid shortcuts commonly reserved by the local desktop.
         """
         return text_result(await call("desktop_keybindings"))
+
+    @tool()
+    async def desktop_accessibility_tree(
+        app: str | None = None,
+        max_depth: int = 30,
+        max_nodes: int = 3000,
+        showing_only: bool = True,
+    ) -> str:
+        """Dump the accessibility tree of the desktop's apps, like uiautomator dump.
+
+        Reads AT-SPI2, the screen-reader protocol. Each node has an id, role,
+        name, states, screen bounds (x, y, w, h), its actions, text and value
+        where the widget has them, and its parent id and depth. Requires apps
+        that export AT-SPI2 accessibility objects. Apps or controls without
+        accessibility support need screenshots. app filters by application
+        name (substring) or id. showing_only keeps application roots and
+        prunes nodes without the showing state and their children.
+        truncated is true when max_nodes cut the list.
+        """
+        return text_result(
+            await call(
+                "desktop_accessibility_tree",
+                app=app,
+                max_depth=max_depth,
+                max_nodes=max_nodes,
+                showing_only=showing_only,
+            )
+        )
+
+    @tool()
+    async def desktop_accessibility_find(
+        name: str | None = None,
+        role: str | None = None,
+        states: list[str] | None = None,
+        app: str | None = None,
+        exact: bool = False,
+        max_depth: int = 30,
+        max_nodes: int = 3000,
+        showing_only: bool = True,
+    ) -> str:
+        """Find accessibility nodes by name, role and states.
+
+        name matches case-insensitively, as a substring unless exact is true.
+        role is the AT-SPI role name ("push button", "entry", "menu item",
+        "check box", "link"). states must all be present ("focusable",
+        "enabled", "checked"). Returns the matching nodes with their bounds;
+        click a node's bounds with system_click for a human click, or pass its
+        id to desktop_accessibility_action.
+        """
+        return text_result(
+            await call(
+                "desktop_accessibility_find",
+                name=name,
+                role=role,
+                states=states,
+                app=app,
+                exact=exact,
+                max_depth=max_depth,
+                max_nodes=max_nodes,
+                showing_only=showing_only,
+            )
+        )
+
+    @tool()
+    async def desktop_accessibility_action(
+        id: str,
+        invoke: str | int | None = None,
+        set_text: str | None = None,
+        focus: bool = False,
+    ) -> str:
+        """Act on an accessibility node by id, without moving the mouse.
+
+        Pass exactly one of invoke, set_text or focus=true.
+        invoke runs one of the node's AT-SPI actions by name as the node lists
+        it ("Click", "Press", "Activate", "Toggle") or by index.
+        set_text replaces an editable node's text. focus
+        gives the node keyboard focus. These skip humanized input; use them
+        when a visible pointer or typing is not needed.
+        """
+        return text_result(
+            await call(
+                "desktop_accessibility_action",
+                id=id,
+                invoke=invoke,
+                set_text=set_text,
+                focus=focus,
+            )
+        )
 
     @tool()
     async def desktop_focus_window(
