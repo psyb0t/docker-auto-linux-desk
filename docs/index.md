@@ -27,7 +27,10 @@ Open `http://localhost:5900/` for the viewer. Send HTTP commands to `http://loca
 ```bash
 curl --fail-with-body http://localhost:8080/ \
   -H 'Content-Type: application/json' \
-  -d '{"action":"send_key","key":"ctrl+alt+t"}'
+  -d '{
+    "action": "send_key",
+    "key": "ctrl+alt+t"
+  }'
 ```
 
 That opens a terminal with the window manager's shortcut. Type a short command into it with humanized keystrokes:
@@ -35,7 +38,10 @@ That opens a terminal with the window manager's shortcut. Type a short command i
 ```bash
 curl --fail-with-body http://localhost:8080/ \
   -H 'Content-Type: application/json' \
-  -d '{"action":"system_type","text":"uname -a\n"}'
+  -d '{
+    "action": "system_type",
+    "text": "uname -a\n"
+  }'
 ```
 
 Then look at the result:
@@ -63,8 +69,9 @@ curl -o desk.png 'http://localhost:8080/screenshot/desktop?whLargest=1024'
 - [Actions reference](api.md): every endpoint and action with parameters.
 - [Humanized input](humanized-input.md): how mouse, typing, wheel and pause input model a person, and every tuning option.
 - [Keyboard shortcuts](keyboard.md): the complete key map, how to press it and how to replace it.
-- [Accessibility tree](accessibility.md): read app widgets like uiautomator, find them and act on them.
-- [MCP and agents](mcp.md): connecting an MCP client and the tool list.
+- [Accessibility tree](desktop-accessibility.md): read app widgets like uiautomator, find them and act on them.
+- [MCP and agent integrations](mcp.md): Claude Code, Codex, OpenClaw, direct MCP, authentication and the tool list.
 - [Script mode](script-mode.md): one-shot YAML scripts with JSON output.
 - [Plugins and derived images](plugins.md): extending the action set and building images on this one.
 - [Development](development.md): building, linting and testing.
+- [Troubleshooting](troubleshooting.md): startup, authentication, connectivity, app controls, sudo and persistent files.

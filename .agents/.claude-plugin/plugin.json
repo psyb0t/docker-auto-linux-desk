@@ -1,0 +1,22 @@
+{
+  "name": "auto-linux-desk",
+  "description": "Control a self-hosted Linux desktop over HTTP or MCP: windows, humanized input, accessibility, clipboard, screenshots, recording and scripts.",
+  "author": { "name": "psyb0t", "url": "https://github.com/psyb0t" },
+  "homepage": "https://github.com/psyb0t/docker-auto-linux-desk",
+  "license": "AGPL-3.0-only",
+  "keywords": ["linux", "desktop-automation", "mcp", "docker"],
+  "userConfig": {
+    "url": {
+      "type": "string",
+      "title": "auto-linux-desk URL",
+      "description": "Base URL of your running desktop server, for example http://localhost:8080.",
+      "required": true
+    },
+    "auth_token": {
+      "type": "string",
+      "title": "API token",
+      "description": "Bearer token when the server uses AUTH_TOKEN.",
+      "sensitive": true
+    }
+  }
+}

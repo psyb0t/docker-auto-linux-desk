@@ -1,0 +1,22 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.psyb0t/auto-linux-desk",
+  "title": "auto-linux-desk",
+  "description": "Self-hosted Linux desktop automation with humanized input, windows, accessibility and screenshots.",
+  "version": "0.0.0",
+  "repository": {
+    "url": "https://github.com/psyb0t/docker-auto-linux-desk",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "oci",
+      "identifier": "docker.io/psyb0t/auto-linux-desk:latest",
+      "runtimeHint": "docker",
+      "transport": {
+        "type": "streamable-http",
+        "url": "http://localhost:8080/mcp/"
+      }
+    }
+  ]
+}

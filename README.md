@@ -9,6 +9,20 @@ A virtual Linux desktop in Docker that you drive over HTTP or MCP. One container
 
 Use it as it is for Linux desktop automation, or build your own image on it: a plugin adds actions for the software you install, such as a browser.
 
+## Contents
+
+- [Quick start](#quick-start)
+- [How it works](#how-it-works)
+- [What it can do](#what-it-can-do)
+- [Agent integrations](#agent-integrations)
+- [Script mode](#script-mode)
+- [Building on it](#building-on-it)
+- [Configuration and security](#configuration-and-security)
+- [Documentation](#documentation)
+- [Development](#development)
+- [Sponsor](#sponsor)
+- [License](#license)
+
 ## Quick start
 
 ```bash
@@ -24,23 +38,45 @@ Open `http://localhost:5900/` to watch the screen. Port 8080 serves the HTTP API
 # Open a terminal with the window manager shortcut
 curl -X POST http://localhost:8080 \
   -H "Content-Type: application/json" \
-  -d '{"action":"send_key","key":"ctrl+alt+t"}'
+  -d '{
+    "action": "send_key",
+    "key": "ctrl+alt+t"
+  }'
 
 # Type into it with human keystrokes
 curl -X POST http://localhost:8080 \
   -H "Content-Type: application/json" \
-  -d '{"action":"system_type","text":"uname -a\n"}'
+  -d '{
+    "action": "system_type",
+    "text": "uname -a\n"
+  }'
 
 # Or run a command directly
 curl -X POST http://localhost:8080 \
   -H "Content-Type: application/json" \
-  -d '{"action":"run_command","command":"ls -la /userdata"}'
+  -d '{
+    "action": "run_command",
+    "command": "ls -la /userdata"
+  }'
 
 # Look at the screen
 curl "http://localhost:8080/screenshot/desktop?whLargest=512" -o desk.png
 ```
 
-`run_command` runs any command it is given and `launch_app` starts any program. With no `AUTH_TOKEN`, anyone who can reach port 8080 can run commands in the container. Set `AUTH_TOKEN` before exposing the port beyond loopback, or set `DESK_EXEC_ENABLED=false` to turn both off. See [installation and security](https://psyb0t.github.io/docker-auto-linux-desk/installation/).
+The example keeps both ports on loopback. Read [configuration and security](#configuration-and-security) before making them reachable from another machine.
+
+## How it works
+
+One container owns one desktop. HTTP requests and MCP tools call the same action dispatcher; `run_script` keeps several steps under one request lock. The noVNC viewer shows the same screen the agent controls.
+
+| Component | Purpose |
+| --- | --- |
+| Xvfb and Openbox | Virtual screen, windows, focus, tiling and keyboard shortcuts. |
+| PyAutoGUI and XTest | OS-level mouse, keyboard and wheel input with humanized motion and timing. |
+| D-Bus and AT-SPI2 | Read and act on widgets that desktop apps expose to accessibility clients. |
+| HTTP API and MCP | Control the desktop on port 8080; MCP uses `/mcp/`. |
+| x11vnc and noVNC | Watch and control the desktop in a browser on port 5900. |
+| ffmpeg, scrot and xclip | MP4 recordings, PNG screenshots and the shared X11 clipboard. |
 
 ## What it can do
 
@@ -59,7 +95,27 @@ curl "http://localhost:8080/screenshot/desktop?whLargest=512" -o desk.png
 
 Input coordinates are screen pixels. Input is sent through XTest, so every X client sees ordinary input events, with mouse paths, click timing and typing rhythm shaped like a person's.
 
-## MCP
+## Agent integrations
+
+Install the desktop-control skill through the shared plugin catalog:
+
+```bash
+# Claude Code
+claude plugin marketplace add psyb0t/agents
+claude plugin install auto-linux-desk@psyb0t
+
+# Codex
+codex plugin marketplace add psyb0t/agents
+codex plugin add auto-linux-desk@psyb0t
+
+# OpenClaw skill and MCP bridge
+openclaw skills install @psyb0t/auto-linux-desk
+openclaw plugins install clawhub:@psyb0t/auto-linux-desk
+```
+
+Run the desktop container separately. The skill teaches the client how to use it; the OpenClaw bridge connects to `AUTO_LINUX_DESK_URL` and sends `AUTH_TOKEN` when configured. See [MCP and agent setup](https://psyb0t.github.io/docker-auto-linux-desk/mcp/) for configuration and security.
+
+For a direct HTTP MCP connection without installing a plugin:
 
 ```bash
 claude mcp add --transport http desk http://localhost:8080/mcp/
@@ -79,6 +135,14 @@ The container runs the YAML steps, prints one JSON document on stdout and exits 
 
 Derived images install their software and set `AUTO_LINUX_DESK_PLUGINS` to Python modules whose `register(registry)` adds or replaces actions, MCP tools, routes, screenshots, state, health checks and lifecycle hooks. See [plugins and derived images](https://psyb0t.github.io/docker-auto-linux-desk/plugins/).
 
+## Configuration and security
+
+`run_command` runs any command it is given and `launch_app` starts any program. With no `AUTH_TOKEN`, anyone who can reach port 8080 can run commands in the container. Set `AUTH_TOKEN` before exposing the port beyond loopback, or set `DESK_EXEC_ENABLED=false` to turn both off. The token protects HTTP and MCP, not noVNC; keep port 5900 private too.
+
+The desktop runs as UID 1000 by default, without sudo access. Opt in with `DESK_SUDO_ENABLED=true` to allow passwordless sudo for all commands inside the container. Do not give it sensitive host mounts. See [passwordless sudo](https://psyb0t.github.io/docker-auto-linux-desk/installation/#passwordless-sudo) for custom UIDs and Docker restrictions.
+
+Copy [`.env.example`](https://github.com/psyb0t/docker-auto-linux-desk/blob/main/.env.example) to a private `.env`, replace its token placeholder and pass it with `docker run --env-file .env`. The [installation reference](https://psyb0t.github.io/docker-auto-linux-desk/installation/) covers ports, authentication, display settings, persistent directories and root startup hooks.
+
 ## Documentation
 
 The full documentation is at **[psyb0t.github.io/docker-auto-linux-desk](https://psyb0t.github.io/docker-auto-linux-desk/)**.
@@ -94,6 +158,7 @@ The full documentation is at **[psyb0t.github.io/docker-auto-linux-desk](https:/
 | [Script mode](https://psyb0t.github.io/docker-auto-linux-desk/script-mode/) | YAML format and output |
 | [Plugins and derived images](https://psyb0t.github.io/docker-auto-linux-desk/plugins/) | The extension interface |
 | [Development](https://psyb0t.github.io/docker-auto-linux-desk/development/) | Make targets and tests |
+| [Troubleshooting](https://psyb0t.github.io/docker-auto-linux-desk/troubleshooting/) | Startup, authentication, connectivity, app controls and persistence |
 
 ## Development
 

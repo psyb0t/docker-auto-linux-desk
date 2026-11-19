@@ -14,7 +14,7 @@ ENV TZ=UTC
 RUN apt-get update && apt-get install -y --no-install-recommends \
         tzdata \
         wget curl gnupg ca-certificates \
-        gosu \
+        gosu sudo \
     && rm -rf /var/lib/apt/lists/*
 
 # X11 display, VNC, the window manager (title bars and resize handles) and the

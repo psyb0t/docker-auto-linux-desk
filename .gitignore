@@ -4,6 +4,7 @@ build/
 dist/
 .mypy_cache/
 .ruff_cache/
+node_modules/
 .testing/
 tests/results/
 sec.sarif
@@ -12,8 +13,7 @@ git-update.sh.debot
 .plan/
 
 # Agent and editor scratch
-CLAUDE.md
-.claude
+CLAUDE.local.md
 CODEX.local.md
 .agent_notes/
 .agent_knowledge/

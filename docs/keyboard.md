@@ -11,7 +11,10 @@ The desktop has one key map, and it is the whole list: every key the window mana
 ```bash
 curl --fail-with-body http://localhost:8080/ \
   -H 'Content-Type: application/json' \
-  -d '{"action":"send_key","key":"ctrl+alt+left"}'
+  -d '{
+    "action": "send_key",
+    "key": "ctrl+alt+left"
+  }'
 ```
 
 Most bindings act on the focused window. The focus bindings (`alt+tab`, `ctrl+alt+b`, `ctrl+alt+t`, `ctrl+alt+1` to `ctrl+alt+9`) pick a window first.
@@ -109,7 +112,7 @@ Action names and options are Openbox's own; the [Openbox actions reference](http
 To use another map, mount a file in the same format and point `KEYBINDINGS_FILE` at it:
 
 ```bash
-docker run -d -p 8080:8080 \
+docker run -d -p 127.0.0.1:8080:8080 \
   -v "$PWD/my-keymap.json:/keymap.json:ro" \
   -e KEYBINDINGS_FILE=/keymap.json \
   psyb0t/auto-linux-desk
@@ -124,7 +127,9 @@ The entrypoint writes it as the whole keyboard section of `~/.config/openbox/rc.
 ```bash
 curl --fail-with-body http://localhost:8080/ \
   -H 'Content-Type: application/json' \
-  -d '{"action":"desktop_keybindings"}'
+  -d '{
+    "action": "desktop_keybindings"
+  }'
 ```
 
 ```json

@@ -2,6 +2,7 @@
 title: Accessibility tree
 description: Read the widgets of desktop apps over AT-SPI2, like uiautomator on Android, find them by name, role and state, and act on them without the mouse.
 nav_order: 5
+permalink: /accessibility/
 ---
 
 # Accessibility tree
@@ -21,7 +22,10 @@ Qt apps, browsers, Electron and LibreOffice have not been tested here. Availabil
 ```bash
 curl --fail-with-body http://localhost:8080/ \
   -H 'Content-Type: application/json' \
-  -d '{"action":"desktop_accessibility_tree","app":"zenity"}'
+  -d '{
+    "action": "desktop_accessibility_tree",
+    "app": "zenity"
+  }'
 ```
 
 | Parameter | Default | Meaning |
@@ -134,7 +138,12 @@ Each node has:
 ```bash
 curl --fail-with-body http://localhost:8080/ \
   -H 'Content-Type: application/json' \
-  -d '{"action":"desktop_accessibility_find","name":"OK","role":"push button","exact":true}'
+  -d '{
+    "action": "desktop_accessibility_find",
+    "name": "OK",
+    "role": "push button",
+    "exact": true
+  }'
 ```
 
 `name` matches case-insensitively, as a substring unless `exact` is `true`. `role` must equal the role name. `states` is a list that must all be present. At least one of the three is required. `app`, `max_depth`, `max_nodes` and `showing_only` work as in the dump. The answer has `matches`, `count` and `truncated`.
@@ -150,12 +159,20 @@ There are two ways, and they look different on screen:
 # Replace the text of an editable field
 curl --fail-with-body http://localhost:8080/ \
   -H 'Content-Type: application/json' \
-  -d '{"action":"desktop_accessibility_action","id":":1.2:/org/a11y/atspi/accessible/7","set_text":"hello"}'
+  -d '{
+    "action": "desktop_accessibility_action",
+    "id": ":1.2:/org/a11y/atspi/accessible/7",
+    "set_text": "hello"
+  }'
 
 # Run one of the node's actions by the name it lists
 curl --fail-with-body http://localhost:8080/ \
   -H 'Content-Type: application/json' \
-  -d '{"action":"desktop_accessibility_action","id":":1.2:/org/a11y/atspi/accessible/10","invoke":"Click"}'
+  -d '{
+    "action": "desktop_accessibility_action",
+    "id": ":1.2:/org/a11y/atspi/accessible/10",
+    "invoke": "Click"
+  }'
 ```
 
 Pass exactly one of:

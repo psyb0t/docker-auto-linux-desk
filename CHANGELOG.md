@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.4.1] 2026-11-19
+
+### Added
+
+- `DESK_SUDO_ENABLED`, off by default, grants the desktop UID passwordless sudo for all commands inside the container. Startup validates the setting and policy, replaces the grant when `PUID` changes, and removes the managed grant when disabled.
+- An `.env.example` covers the desktop configuration, including the sudo flag and API authentication.
+- Relative `CLAUDE.md` and `.claude` links point to the shared project guidance in `AGENTS.md` and `.agents`.
+- A desktop-control skill, Claude Code and Codex plugin manifests, and an OpenClaw MCP bridge with locked dependencies and containerized development checks.
+- Tag-triggered ClawHub and MCP Registry publication, plus Glama ownership metadata.
+- README contents, agent installation instructions and a troubleshooting page.
+
+### Changed
+
+- Separate desktop accessibility documentation from GitHub's accessibility statement convention while preserving its published URL.
+- Expand configuration, security, plugin and development guidance, and format command examples for reading.
+
 ## [0.4.0] 2026-11-19
 
 ### Added

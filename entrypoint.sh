@@ -9,6 +9,55 @@ DESK_BANNER="${DESK_BANNER:-AUTO-LINUX-DESK}"
 DESK_HOOK_DIR="${DESK_HOOK_DIR:-/etc/auto-linux-desk/entrypoint.d}"
 export DESK_HOME TARGET_UID TARGET_GID
 
+readonly SUDO_POLICY=/etc/sudoers.d/auto-linux-desk
+readonly MAX_DESKTOP_UID=4294967294
+
+case "${DESK_SUDO_ENABLED-false}" in
+    true | 1 | yes | on) SUDO_ENABLED=true ;;
+    false | 0 | no | off) SUDO_ENABLED=false ;;
+    *)
+        printf '%s\n' 'ERROR: DESK_SUDO_ENABLED must be true/1/yes/on or false/0/no/off' >&2
+        exit 1
+        ;;
+esac
+
+if [ "$SUDO_ENABLED" = true ]; then
+    if ! [[ "$TARGET_UID" =~ ^[1-9][0-9]{0,9}$ ]] ||
+        ((TARGET_UID > MAX_DESKTOP_UID)); then
+        printf '%s\n' 'ERROR: PUID must be a non-root decimal UID from 1 to 4294967294 when DESK_SUDO_ENABLED is enabled' >&2
+        exit 1
+    fi
+fi
+
+_configure_sudo() (
+    local pending=""
+    # A dot in the temporary filename keeps sudoers from loading it early.
+    trap 'if [ -n "$pending" ]; then rm -f -- "$pending"; fi' EXIT
+    if [ -L "$SUDO_POLICY" ] || { [ -e "$SUDO_POLICY" ] && [ ! -f "$SUDO_POLICY" ]; }; then
+        printf '%s\n' 'ERROR: refusing unexpected sudo policy file type' >&2
+        exit 1
+    fi
+    if [ "$SUDO_ENABLED" = false ]; then
+        rm -f -- "$SUDO_POLICY" || exit 1
+        exit 0
+    fi
+    if ! /usr/sbin/visudo -cqf /etc/sudoers; then
+        printf '%s\n' 'ERROR: existing sudo policy is invalid' >&2
+        exit 1
+    fi
+    pending=$(mktemp /etc/sudoers.d/.auto-linux-desk.XXXXXX) || exit 1
+    if ! printf '#%s ALL=(ALL:ALL) NOPASSWD: ALL\n' "$TARGET_UID" >"$pending" ||
+        ! chown 0:0 "$pending" || ! chmod 0440 "$pending" ||
+        ! /usr/sbin/visudo -cqf "$pending"; then
+        printf '%s\n' 'ERROR: could not prepare sudo policy' >&2
+        exit 1
+    fi
+    if ! mv -fT -- "$pending" "$SUDO_POLICY"; then
+        printf '%s\n' 'ERROR: could not install sudo policy' >&2
+        exit 1
+    fi
+)
+
 # Fix ownership of writable dirs (runs as root).
 _fix_perms() {
     local dir
@@ -57,12 +106,21 @@ if [ "$(id -u)" = "0" ]; then
     fi
     _fix_perms
     _run_hooks
+    _configure_sudo || exit 1
     # Drop privileges and re-exec this script as the target user.
     exec gosu "$TARGET_UID:$TARGET_GID" env HOME="$DESK_HOME" "$0" "$@"
 fi
 
 # Already non-root (docker --user): ownership fixes and hooks were skipped.
 export HOME="${HOME:-$DESK_HOME}"
+
+if [ "$SUDO_ENABLED" = true ]; then
+    if [ "$(id -u)" != "$TARGET_UID" ] || ! /usr/bin/sudo -n -- /usr/bin/true; then
+        printf '%s\n' 'ERROR: DESK_SUDO_ENABLED requires a matching passwordless sudo grant and Docker permissions that allow sudo; start the entrypoint as root to configure the grant' >&2
+        exit 1
+    fi
+    printf '%s\n' 'WARNING: DESK_SUDO_ENABLED grants the desktop user passwordless root access inside this container' >&2
+fi
 
 case "${VNC_SHOW_CURSOR:-true}" in
     true)

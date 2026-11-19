@@ -5,6 +5,8 @@ TAG ?= latest
 TEST_TAG ?= $(TAG)-test
 DEV_BASE_IMAGE := $(IMAGE_NAME):dev-base
 DEV_IMAGE := $(IMAGE_NAME):dev
+AGENT_DEV_IMAGE := $(IMAGE_NAME):agent-dev
+AGENT_PLUGIN_DIR := .agents/plugins/auto-linux-desk
 PROJECT_ROOT := $(CURDIR)
 DOCS_IMAGE := ghcr.io/actions/jekyll-build-pages:v1.0.13@sha256:6791ebfd912185ed59bfb5fb102664fa872496b79f87ff8b9cfba292a7345041
 TEST_ARGS ?=
@@ -29,6 +31,13 @@ DEV_RUN_BASE := docker run --rm --init --read-only \
 DEV_RUN := $(DEV_RUN_BASE) -v "$(PROJECT_ROOT):/work:ro" $(DEV_IMAGE)
 DEV_RUN_WRITE := $(DEV_RUN_BASE) -v "$(PROJECT_ROOT):/work" $(DEV_IMAGE)
 
+AGENT_RUN := docker run --rm --init --read-only \
+	--tmpfs /tmp:rw,noexec,nosuid,size=128m \
+	--tmpfs /work-env:rw,exec,nosuid,size=512m,mode=1777 \
+	--user $(UID):$(GID) -e HOME=/tmp \
+	-v "$(PROJECT_ROOT):/work:ro" -w /work-env \
+	$(AGENT_DEV_IMAGE)
+
 DEV_RUN_DIND := docker run --rm --init --read-only \
 	--tmpfs /tmp:rw,noexec,nosuid,size=512m \
 	--tmpfs /work-env:rw,exec,nosuid,size=512m \
@@ -44,6 +53,7 @@ DEV_RUN_DIND := docker run --rm --init --read-only \
 
 .DEFAULT_GOAL := help
 .PHONY: help dev-image shell build build-test lint lint-fix format test test-unit sec generate clean docs-build
+.PHONY: agent-dev-image agent-check pkg-lock
 
 help: ## Show supported development commands.
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ {printf "%-16s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -51,6 +61,15 @@ help: ## Show supported development commands.
 dev-image: ## Build the sandboxed development image.
 	docker build -t $(DEV_BASE_IMAGE) .
 	docker build --build-arg BASE_IMAGE=$(DEV_BASE_IMAGE) -f Dockerfile.dev -t $(DEV_IMAGE) .
+
+agent-dev-image: ## Build the isolated Node tooling for the agent bridge.
+	docker build --target agent-dev -f Dockerfile.dev -t $(AGENT_DEV_IMAGE) .
+
+pkg-lock: agent-dev-image ## Refresh the MCP bridge lockfile without install scripts.
+	$(AGENT_RUN) sh -ec 'cp -R /work/$(AGENT_PLUGIN_DIR) plugin; cd plugin; pnpm install --lockfile-only --ignore-scripts >&2; cat pnpm-lock.yaml' > $(AGENT_PLUGIN_DIR)/pnpm-lock.yaml
+
+agent-check: agent-dev-image ## Check the locked bridge package, JavaScript syntax and input errors.
+	$(AGENT_RUN) sh -ec 'cp -R /work/$(AGENT_PLUGIN_DIR) plugin; cd plugin; pnpm install --frozen-lockfile --ignore-scripts --store-dir /work-env/store; node --check bin/cli.js; node /work/tests/test_agent_bridge.mjs /work-env/plugin/bin/cli.js'
 
 shell: dev-image ## Open a shell in the development image.
 	$(DEV_RUN_WRITE) bash

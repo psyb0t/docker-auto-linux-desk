@@ -15,7 +15,7 @@ auto-linux-desk is licensed under the [AGPL-3.0-only](https://github.com/psyb0t/
 ## A derived image
 
 ```dockerfile
-FROM psyb0t/auto-linux-desk:v0.3.0
+FROM psyb0t/auto-linux-desk:latest
 
 USER root
 RUN apt-get update \
@@ -28,7 +28,7 @@ ENV PYTHONPATH=/opt/my-plugin \
     DESK_BANNER="MY DESK"
 ```
 
-Pin the base by tag and digest in production. The entrypoint stays the base one; it starts `python -m autolinuxdesk`, which loads the plugins before the server starts.
+The first-party base uses `:latest` so fixes reach derived builds. Rebuild the derived image to pick up a new base. The entrypoint stays the base one; it starts `python -m autolinuxdesk`, which loads the plugins before the server starts. These in-process Python plugins are different from the client-side agent plugins described in [MCP and agent integrations](mcp.md).
 
 These variables shape the entrypoint for a derived image:
 
@@ -38,6 +38,7 @@ These variables shape the entrypoint for a derived image:
 | `DESK_WRITABLE_DIRS` | `/userdata /recordings` | Space-separated directories chowned for `PUID` and `PGID`. |
 | `DESK_BANNER` | `AUTO-LINUX-DESK` | Startup banner title. |
 | `DESK_EXEC_ENABLED` | `true` | Set `false` in the image to ship without `run_command` and `launch_app`. |
+| `DESK_SUDO_ENABLED` | `false` | Opt in to passwordless sudo for the desktop UID. See [installation and security](installation.md#passwordless-sudo). |
 | `AUTO_LINUX_DESK_PLUGINS` | unset | Comma-separated module names. |
 
 To rename the desktop user while keeping UID 1000, run `usermod -l <name> -d /home/<name> -m desk` and `groupmod -n <name> desk`, then set `DESK_HOME`. Root setup that must run on every start goes in `/etc/auto-linux-desk/entrypoint.d/*.sh`; see [installation](installation.md#entrypoint-hooks).

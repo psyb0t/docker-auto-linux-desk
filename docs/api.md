@@ -172,7 +172,7 @@ The `window` in each return is the window as it was before the action. Geometry 
 | `desktop_accessibility_find` | `name`, `role`, `states`, `exact`, plus the tree's parameters | The nodes that match. |
 | `desktop_accessibility_action` | `id`, and exactly one of `invoke`, `set_text`, `focus` | Runs a node's action, replaces an editable node's text, or focuses it, without moving the mouse. |
 
-See [accessibility tree](accessibility.md) for the fields, examples and which apps export a tree.
+See [accessibility tree](desktop-accessibility.md) for the fields, examples and which apps export a tree.
 
 ## Programs and shell commands
 

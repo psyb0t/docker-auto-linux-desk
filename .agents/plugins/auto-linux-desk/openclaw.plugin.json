@@ -1,0 +1,26 @@
+{
+  "name": "@psyb0t/auto-linux-desk",
+  "id": "@psyb0t/auto-linux-desk",
+  "version": "0.0.0",
+  "type": "code-plugin",
+  "summary": "Connect an MCP agent to your self-hosted Linux desktop.",
+  "description": "A stdio-to-Streamable-HTTP MCP bridge for auto-linux-desk at /mcp/. The server exposes desktop windows and shortcuts, humanized input, AT-SPI2 widgets, screenshots, clipboard, recordings, scripts and human handoff. Program tools can execute commands; optional sudo grants container root. Use only for actions and desktops the user has authorized. Run the server separately. See https://github.com/psyb0t/docker-auto-linux-desk.",
+  "extensions": ["./bin/cli.js"],
+  "compat": { "pluginApi": ">=2026.3.24-beta.2" },
+  "build": { "openclawVersion": "2026.3.24-beta.2" },
+  "environment": {
+    "AUTO_LINUX_DESK_URL": {
+      "required": true,
+      "description": "Trusted HTTP(S) base URL of your desktop server, without /mcp/."
+    },
+    "AUTH_TOKEN": {
+      "required": false,
+      "description": "Bearer token when the server has AUTH_TOKEN set."
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  }
+}

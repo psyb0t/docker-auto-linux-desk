@@ -32,7 +32,7 @@ The API can run any command in the container. `run_command` runs any command it 
 - Set `AUTH_TOKEN` before the API port is reachable from anywhere but loopback. Every endpoint except `/health` then needs `Authorization: Bearer <token>`, MCP included. A token in the query string is refused.
 - Set `DESK_EXEC_ENABLED=false` when clients only need input, windows, screenshots and the clipboard. `run_command` and `launch_app` then fail with an error. Input can still type into a terminal window that is already open, so this switch narrows the API, it is not a sandbox.
 - noVNC has no password. Publish port 5900 on loopback, or put it behind something that authenticates.
-- The desktop user is not root and has no sudo. The container is the isolation boundary: do not mount the Docker socket or host directories you would not hand to the client.
+- The desktop user is not root and has no sudo access by default. `DESK_SUDO_ENABLED=true` grants passwordless root access inside the container. The container is the isolation boundary: do not mount the Docker socket or host directories you would not hand to the client.
 
 ## Environment variables
 
@@ -40,6 +40,7 @@ The API can run any command in the container. `run_command` runs any command it 
 | --- | --- | --- |
 | `AUTH_TOKEN` | unset | Bearer token for every endpoint except `/health`. Empty or whitespace counts as unset. |
 | `DESK_EXEC_ENABLED` | `true` | `false` refuses `run_command` and `launch_app`. Accepts `true`, `1`, `yes`, `on` and `false`, `0`, `no`, `off`; anything else stops startup. |
+| `DESK_SUDO_ENABLED` | `false` | Grants the desktop UID passwordless sudo for all commands and target users. Accepts `true`, `1`, `yes`, `on` and `false`, `0`, `no`, `off`; empty or other values stop startup. See [passwordless sudo](#passwordless-sudo). |
 | `XVFB_RESOLUTION` | `1920x1080` | Screen size as `WIDTHxHEIGHT`. |
 | `XVFB_DEPTH` | `24` | Screen colour depth. |
 | `TZ` | `UTC` | Time zone. |
@@ -53,6 +54,9 @@ The API can run any command in the container. `run_command` runs any command it 
 | `DESK_LAUNCH_LOG_DIR` | `/tmp/auto-linux-desk/launched` | Where `launch_app` writes each program's output. |
 | `AUTO_LINUX_DESK_PLUGINS` | unset | Comma-separated Python modules to load as [plugins](plugins.md). |
 | `DESK_HOME`, `DESK_WRITABLE_DIRS`, `DESK_BANNER` | `/home/desk`, `/userdata /recordings`, `AUTO-LINUX-DESK` | Set by derived images; see [plugins and derived images](plugins.md). |
+| `DESK_HOOK_DIR` | `/etc/auto-linux-desk/entrypoint.d` | Trusted root startup hook directory. See [entrypoint hooks](#entrypoint-hooks). |
+
+Copy [`.env.example`](https://github.com/psyb0t/docker-auto-linux-desk/blob/main/.env.example) to a private `.env`, replace the token placeholder and pass `--env-file .env` to `docker run`. The file uses Docker env-file syntax, not a shell script. Recreate the container when changing its environment; restarting an existing container does not replace its stored environment. `AUTO_LINUX_DESK_URL` is a client/bridge setting, not a server listen address; see [agent setup](mcp.md).
 
 ## Users and volumes
 
@@ -67,3 +71,24 @@ The desktop runs as `desk` (UID and GID 1000, home `/home/desk`). The entrypoint
 ## Entrypoint hooks
 
 Before dropping privileges, the entrypoint sources every `*.sh` file in `/etc/auto-linux-desk/entrypoint.d/` in filename order, as root. They do not run under `docker run --user`. Hooks can read `TARGET_UID`, `TARGET_GID` and `DESK_HOME`. Use them for setup that needs root, such as fixing ownership of an extra directory.
+
+## Passwordless sudo
+
+Enable sudo only for a desktop you trust with root access:
+
+```bash
+docker run -d --name desk \
+  -p 127.0.0.1:8080:8080 \
+  -p 127.0.0.1:5900:5900 \
+  -e AUTH_TOKEN=your-token-here \
+  -e DESK_SUDO_ENABLED=true \
+  psyb0t/auto-linux-desk:latest
+```
+
+The desktop still runs as `PUID` (1000 by default), but `sudo -n id -u` returns `0`. The same applies to commands submitted through `run_command`, programs started through `launch_app`, and commands typed into a terminal. Disabling those API actions does not prevent sudo through the desktop.
+
+The root entrypoint validates the existing sudoers configuration and installs `/etc/sudoers.d/auto-linux-desk`, owned by root with mode `0440`. It grants the numeric UID `NOPASSWD: ALL` as any user and group. Changing `PUID` replaces the old managed grant; disabling the flag removes only that file on the next root startup. Other sudoers rules are not changed. `PUID` must be a canonical decimal number from 1 to 4294967294 when enabled, without leading zeros.
+
+Start the entrypoint as root so it can configure the grant before dropping privileges. With `--user`, the flag works only if the running UID matches `PUID` and the image already has a working passwordless sudo grant. Otherwise startup fails. A read-only sudoers directory prevents configuring the grant. Docker's `no-new-privileges`, dropped capabilities and other restrictions can prevent sudo; the flag does not bypass them, and startup fails if the enabled grant cannot be used.
+
+Anyone who controls this desktop can become root inside the container when enabled. Keep both ports private, require API authentication, and avoid sensitive host mounts.

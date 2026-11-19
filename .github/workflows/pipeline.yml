@@ -7,6 +7,10 @@ on:
 
 permissions: {}
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
 jobs:
   code:
     if: "!startsWith(github.ref, 'refs/tags/')"
@@ -15,8 +19,8 @@ jobs:
       security-events: write
     uses: psyb0t/reusable-github-workflows/.github/workflows/code-workflow.yml@master
     with:
-      lint_command: "make lint"
-      test_command: "make test"
+      lint_command: "make lint agent-check docs-build"
+      test_command: "make test-unit test"
       sec_command: "make sec"
       sarif_file: "sec.sarif"
       sarif_category: "python"
@@ -79,3 +83,23 @@ jobs:
     permissions:
       contents: write
     uses: psyb0t/reusable-github-workflows/.github/workflows/release-workflow.yml@master
+
+  publish-to-clawhub:
+    needs: [release]
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: read
+    uses: psyb0t/reusable-github-workflows/.github/workflows/clawhub-publish.yml@master
+    with:
+      skill_names: '["auto-linux-desk"]'
+      plugin_names: '["auto-linux-desk"]'
+    secrets:
+      clawhub_token: ${{ secrets.CLAWHUB_TOKEN }}
+
+  publish-to-mcp-registry:
+    needs: [release]
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      id-token: write
+      contents: read
+    uses: psyb0t/reusable-github-workflows/.github/workflows/mcp-registry-publish.yml@master
