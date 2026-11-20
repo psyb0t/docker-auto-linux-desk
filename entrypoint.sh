@@ -21,6 +21,22 @@ case "${DESK_SUDO_ENABLED-false}" in
         ;;
 esac
 
+# DESK_DARK_MODE switches the whole desktop to dark: xterm colors, the
+# Openbox theme, GTK applications (a browser's toolbar and the
+# prefers-color-scheme it reports) and the root window.
+case "${DESK_DARK_MODE-false}" in
+    true | 1 | yes | on) DARK_MODE=true ;;
+    false | 0 | no | off) DARK_MODE=false ;;
+    *)
+        printf '%s\n' 'ERROR: DESK_DARK_MODE must be true/1/yes/on or false/0/no/off' >&2
+        exit 1
+        ;;
+esac
+readonly DARK_OPENBOX_THEME=Onyx
+readonly DARK_GTK_THEME=Adwaita:dark
+readonly DARK_XRESOURCES=/etc/auto-linux-desk/dark.Xresources
+readonly DARK_ROOT_COLOR='#121212'
+
 if [ "$SUDO_ENABLED" = true ]; then
     if ! [[ "$TARGET_UID" =~ ^[1-9][0-9]{0,9}$ ]] ||
         ((TARGET_UID > MAX_DESKTOP_UID)); then
@@ -184,13 +200,32 @@ fi
 export NO_AT_BRIDGE=0 GNOME_ACCESSIBILITY=1 ACCESSIBILITY_ENABLED=1 \
     QT_ACCESSIBILITY=1 QT_LINUX_ACCESSIBILITY_ALWAYS_ON=1
 
-# KEYBINDINGS_FILE replaces the whole key map (docs/keyboard.md).
-if [ -n "${KEYBINDINGS_FILE:-}" ]; then
-    python3 /usr/local/lib/auto-linux-desk/configure-openbox.py \
-        /etc/xdg/openbox/rc.xml "$KEYBINDINGS_FILE" "$HOME/.config/openbox/rc.xml" || {
-        echo "ERROR: KEYBINDINGS_FILE=$KEYBINDINGS_FILE is not a valid key map" >&2
+# KEYBINDINGS_FILE replaces the whole key map (docs/keyboard.md), and
+# DESK_DARK_MODE picks the dark Openbox theme. rc.xml is written again when
+# either asks for it, and when a dark rc.xml from an earlier start of this
+# container has to go back to the stock theme.
+OPENBOX_RC="$HOME/.config/openbox/rc.xml"
+OPENBOX_ARGS=()
+if [ "$DARK_MODE" = true ]; then
+    OPENBOX_ARGS=(--theme "$DARK_OPENBOX_THEME")
+fi
+if [ -n "${KEYBINDINGS_FILE:-}" ] || [ "$DARK_MODE" = true ] ||
+    grep -q "<name>$DARK_OPENBOX_THEME</name>" "$OPENBOX_RC" 2>/dev/null; then
+    python3 /usr/local/lib/auto-linux-desk/configure-openbox.py "${OPENBOX_ARGS[@]}" \
+        /etc/xdg/openbox/rc.xml "${KEYBINDINGS_FILE:-/etc/auto-linux-desk/keymap.json}" "$OPENBOX_RC" || {
+        if [ -n "${KEYBINDINGS_FILE:-}" ]; then
+            echo "ERROR: KEYBINDINGS_FILE=$KEYBINDINGS_FILE is not a valid key map" >&2
+        else
+            echo "ERROR: could not write $OPENBOX_RC" >&2
+        fi
         exit 1
     }
+fi
+
+# GTK applications read the theme from the environment, which the server
+# passes on to everything it launches.
+if [ "$DARK_MODE" = true ]; then
+    export GTK_THEME="$DARK_GTK_THEME"
 fi
 
 # The framebuffer MUST be allocated at XVFB_RESOLUTION up front. Xvfb's root
@@ -208,6 +243,14 @@ if [ -z "$DISPLAY" ] || [ "$DISPLAY" = ":99" ]; then
     openbox &
     PIDS+=($!)
     sleep 0.3
+fi
+
+if [ "$DARK_MODE" = true ]; then
+    xrdb -merge "$DARK_XRESOURCES" || {
+        echo "ERROR: could not load $DARK_XRESOURCES" >&2
+        exit 1
+    }
+    xsetroot -solid "$DARK_ROOT_COLOR" || echo "WARNING: could not set the root window color" >&2
 fi
 
 VNC_LISTEN_HOST="${VNC_LISTEN_HOST:-0.0.0.0}"

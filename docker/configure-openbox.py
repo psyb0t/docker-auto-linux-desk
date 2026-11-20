@@ -1,7 +1,7 @@
 """Write the desktop user's Openbox rc.xml from the stock one and a key map.
 
 Usage:
-  python3 configure-openbox.py <stock rc.xml> <keymap.json> <output rc.xml>
+  python3 configure-openbox.py [--theme NAME] <stock rc.xml> <keymap.json> <output rc.xml>
   python3 configure-openbox.py --markdown <keymap.json>
 
 - One desktop. Openbox defaults to four, and wheel input over an uncovered
@@ -11,10 +11,13 @@ Usage:
   the complete list of what the desktop's keys do. The map is copied next to
   the output as keymap.json, where desktop_keybindings reads the
   descriptions.
+- --theme sets the Openbox theme (title bars and menus) by the name of a
+  directory under /usr/share/themes; without it the stock theme stays.
 - --markdown prints the key map as the table docs/keyboard.md carries.
 
 The entrypoint runs this again at start when KEYBINDINGS_FILE names another
-map, and desktop_keybindings reads the result back at runtime.
+map or DESK_DARK_MODE picks the dark theme, and desktop_keybindings reads the
+result back at runtime.
 """
 
 from __future__ import annotations
@@ -118,10 +121,18 @@ def load_keymap(path: str) -> list[dict]:
     return bindings
 
 
-def write_rc(source: str, keymap: str, target: str) -> None:
+def write_rc(source: str, keymap: str, target: str, theme: str | None = None) -> None:
     bindings = load_keymap(keymap)
     tree = ET.parse(source)
     root = tree.getroot()
+
+    if theme is not None:
+        if not XML_NAME.fullmatch(theme):
+            raise SystemExit(f"theme name is not valid: {theme!r}")
+        name = root.find(f"{q('theme')}/{q('name')}")
+        if name is None:
+            raise SystemExit("rc.xml has no theme/name")
+        name.text = theme
 
     number = root.find(f"{q('desktops')}/{q('number')}")
     if number is None:
@@ -158,5 +169,7 @@ if __name__ == "__main__":
         sys.stdout.write(markdown(sys.argv[2]))
     elif len(sys.argv) == 4:
         write_rc(*sys.argv[1:])
+    elif len(sys.argv) == 6 and sys.argv[1] == "--theme":
+        write_rc(*sys.argv[3:], theme=sys.argv[2])
     else:
         raise SystemExit(__doc__)

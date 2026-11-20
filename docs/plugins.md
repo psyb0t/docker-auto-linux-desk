@@ -39,6 +39,7 @@ These variables shape the entrypoint for a derived image:
 | `DESK_BANNER` | `AUTO-LINUX-DESK` | Startup banner title. |
 | `DESK_EXEC_ENABLED` | `true` | Set `false` in the image to ship without `run_command` and `launch_app`. |
 | `DESK_SUDO_ENABLED` | `false` | Opt in to passwordless sudo for the desktop UID. See [installation and security](installation.md#passwordless-sudo). |
+| `DESK_DARK_MODE` | `false` | Set `true` in the image to ship a dark desktop. See [dark mode](installation.md#dark-mode). |
 | `AUTO_LINUX_DESK_PLUGINS` | unset | Comma-separated module names. |
 
 To rename the desktop user while keeping UID 1000, run `usermod -l <name> -d /home/<name> -m desk` and `groupmod -n <name> desk`, then set `DESK_HOME`. Root setup that must run on every start goes in `/etc/auto-linux-desk/entrypoint.d/*.sh`; see [installation](installation.md#entrypoint-hooks).

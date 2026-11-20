@@ -139,6 +139,8 @@ Derived images install their software and set `AUTO_LINUX_DESK_PLUGINS` to Pytho
 
 `run_command` runs any command it is given and `launch_app` starts any program. With no `AUTH_TOKEN`, anyone who can reach port 8080 can run commands in the container. Set `AUTH_TOKEN` before exposing the port beyond loopback, or set `DESK_EXEC_ENABLED=false` to turn both off. The token protects HTTP and MCP, not noVNC; keep port 5900 private too.
 
+`DESK_DARK_MODE=true` switches the terminal, window title bars, GTK applications and the background to dark in one setting. See [dark mode](https://psyb0t.github.io/docker-auto-linux-desk/installation/#dark-mode).
+
 The desktop runs as UID 1000 by default, without sudo access. Opt in with `DESK_SUDO_ENABLED=true` to allow passwordless sudo for all commands inside the container. Do not give it sensitive host mounts. See [passwordless sudo](https://psyb0t.github.io/docker-auto-linux-desk/installation/#passwordless-sudo) for custom UIDs and Docker restrictions.
 
 Copy [`.env.example`](https://github.com/psyb0t/docker-auto-linux-desk/blob/main/.env.example) to a private `.env`, replace its token placeholder and pass it with `docker run --env-file .env`. The [installation reference](https://psyb0t.github.io/docker-auto-linux-desk/installation/) covers ports, authentication, display settings, persistent directories and root startup hooks.

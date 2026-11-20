@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.5.0] 2026-11-20
+
+### Added
+
+- **`DESK_DARK_MODE` turns the whole desktop dark with one setting.** xterm gets dark colors and DejaVu Sans Mono for every launcher (`xterm`, `uxterm`, `lxterm`), Openbox uses the `Onyx` theme, `GTK_THEME=Adwaita:dark` reaches the server and everything it launches (a Firefox-based browser's toolbar and the `prefers-color-scheme` it reports), and the root window turns dark grey. Off by default; a malformed value stops startup. See [dark mode](https://psyb0t.github.io/docker-auto-linux-desk/installation/#dark-mode).
+- `configure-openbox.py` takes `--theme NAME` to set the Openbox theme.
+
 ## [0.4.1] 2026-11-19
 
 ### Added

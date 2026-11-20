@@ -1,0 +1,16 @@
+! xterm colors for DESK_DARK_MODE. The VT100 widget class covers every
+! xterm launcher in the image (xterm, uxterm, lxterm), whose top-level classes
+! differ (XTerm, UXTerm).
+*VT100.background: #121212
+*VT100.foreground: #e4e4e4
+*VT100.cursorColor: #e4e4e4
+*VT100.color0: #121212
+*VT100.color8: #5c5c5c
+*VT100.color4: #5c8ff2
+*VT100.color12: #82aaff
+*VT100.color6: #4fc1c9
+*VT100.color14: #89ddff
+*VT100.faceName: DejaVu Sans Mono
+*VT100.faceSize: 13
+*VT100.internalBorder: 10
+*scrollBar: false

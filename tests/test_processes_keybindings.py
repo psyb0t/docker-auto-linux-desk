@@ -398,3 +398,38 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+def test_configure_openbox_sets_the_theme_only_when_asked() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        stock = str(Path(tmp) / "stock.xml")
+        _configure(stock)
+        themed = str(Path(tmp) / "themed.xml")
+        subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "docker" / "configure-openbox.py"),
+                "--theme",
+                "Onyx",
+                _STOCK_RC,
+                str(ROOT / "docker" / "keymap.json"),
+                themed,
+            ],
+            check=True,
+        )
+        stock_theme = Path(stock).read_text()
+        assert "<name>Onyx</name>" not in stock_theme
+        assert "<name>Onyx</name>" in Path(themed).read_text()
+        bad = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "docker" / "configure-openbox.py"),
+                "--theme",
+                "../evil",
+                _STOCK_RC,
+                str(ROOT / "docker" / "keymap.json"),
+                themed,
+            ],
+            capture_output=True,
+        )
+        assert bad.returncode != 0

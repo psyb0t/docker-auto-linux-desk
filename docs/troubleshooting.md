@@ -8,7 +8,7 @@ nav_order: 10
 
 ## The container exits before the API starts
 
-Read `docker logs desk` for a container you own. A malformed `DESK_EXEC_ENABLED`, `DESK_SUDO_ENABLED`, `VNC_SHOW_CURSOR` or key map stops startup. Check the accepted values in [installation](installation.md#environment-variables) and the [key map format](keyboard.md#replacing-the-key-map). The sudo flag rejects an explicitly empty value; omit it to use the default `false`.
+Read `docker logs desk` for a container you own. A malformed `DESK_EXEC_ENABLED`, `DESK_SUDO_ENABLED`, `DESK_DARK_MODE`, `VNC_SHOW_CURSOR` or key map stops startup. Check the accepted values in [installation](installation.md#environment-variables) and the [key map format](keyboard.md#replacing-the-key-map). The sudo flag rejects an explicitly empty value; omit it to use the default `false`.
 
 A custom `PUID` is normally created by the root entrypoint before it drops privileges. `--user` skips account creation, ownership fixes and root hooks. A UID without a passwd entry can prevent D-Bus from starting. Prefer the documented `PUID`/`PGID` path unless your derived image already prepares its user and writable directories.
 

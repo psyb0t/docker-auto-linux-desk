@@ -41,6 +41,7 @@ The API can run any command in the container. `run_command` runs any command it 
 | `AUTH_TOKEN` | unset | Bearer token for every endpoint except `/health`. Empty or whitespace counts as unset. |
 | `DESK_EXEC_ENABLED` | `true` | `false` refuses `run_command` and `launch_app`. Accepts `true`, `1`, `yes`, `on` and `false`, `0`, `no`, `off`; anything else stops startup. |
 | `DESK_SUDO_ENABLED` | `false` | Grants the desktop UID passwordless sudo for all commands and target users. Accepts `true`, `1`, `yes`, `on` and `false`, `0`, `no`, `off`; empty or other values stop startup. See [passwordless sudo](#passwordless-sudo). |
+| `DESK_DARK_MODE` | `false` | Switches the whole desktop to dark: xterm colors, the Openbox theme (`Onyx`), GTK applications through `GTK_THEME=Adwaita:dark` (a browser's toolbar and the `prefers-color-scheme` it reports to pages) and the root window. Accepts `true`, `1`, `yes`, `on` and `false`, `0`, `no`, `off`; empty or other values stop startup. See [dark mode](#dark-mode). |
 | `XVFB_RESOLUTION` | `1920x1080` | Screen size as `WIDTHxHEIGHT`. |
 | `XVFB_DEPTH` | `24` | Screen colour depth. |
 | `TZ` | `UTC` | Time zone. |
@@ -72,6 +73,17 @@ The desktop runs as `desk` (UID and GID 1000, home `/home/desk`). The entrypoint
 
 Before dropping privileges, the entrypoint sources every `*.sh` file in `/etc/auto-linux-desk/entrypoint.d/` in filename order, as root. They do not run under `docker run --user`. Hooks can read `TARGET_UID`, `TARGET_GID` and `DESK_HOME`. Use them for setup that needs root, such as fixing ownership of an extra directory.
 
+
+## Dark mode
+
+`DESK_DARK_MODE=true` turns the desktop dark with one setting:
+
+- xterm, whichever launcher opens it (`xterm`, `uxterm`, `lxterm`), gets a dark background, light text and DejaVu Sans Mono from `/etc/auto-linux-desk/dark.Xresources`, loaded with `xrdb` at start.
+- Openbox title bars and menus use the `Onyx` theme.
+- `GTK_THEME=Adwaita:dark` is set for the server and everything it launches, so GTK applications, a Firefox-based browser's own toolbar included, draw dark and report `prefers-color-scheme: dark` to pages.
+- The root window is dark grey.
+
+It is off by default. A page can read `prefers-color-scheme`, so a derived image that cares about how its browser looks to sites should leave it off unless dark is wanted. Switching it off again on a restarted container puts the stock Openbox theme back.
 ## Passwordless sudo
 
 Enable sudo only for a desktop you trust with root access:

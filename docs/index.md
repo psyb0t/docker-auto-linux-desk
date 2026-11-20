@@ -59,7 +59,7 @@ curl -o desk.png 'http://localhost:8080/screenshot/desktop?whLargest=1024'
 | x11vnc and noVNC | Watch and control the screen from a browser on port 5900. |
 | Humanized input | Mouse paths, click timing, typing rhythm and wheel notches modelled on human data, sent through XTest. |
 | wmctrl and xdotool | List, focus, move, resize, maximize and close top-level windows. |
-| xterm | The default terminal. `ctrl+alt+t` focuses it or opens one, `ctrl+alt+shift+t` opens another. |
+| xterm | The default terminal. `ctrl+alt+t` focuses it or opens one, `ctrl+alt+shift+t` opens another. `DESK_DARK_MODE=true` makes it dark along with the rest of the desktop. |
 | ffmpeg, scrot, xclip | Screen recording, screenshots and the X clipboard. |
 | HTTP, MCP and script mode | One action set behind `POST /`, an MCP endpoint at `/mcp/` and YAML scripts on stdin. |
 

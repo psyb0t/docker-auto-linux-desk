@@ -1,6 +1,6 @@
 {
   "name": "auto-linux-desk",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "Control a self-hosted Linux desktop over HTTP or MCP: windows, humanized input, accessibility, clipboard, screenshots, recording and scripts.",
   "author": { "name": "psyb0t", "url": "https://github.com/psyb0t" },
   "homepage": "https://github.com/psyb0t/docker-auto-linux-desk",

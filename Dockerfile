@@ -56,6 +56,7 @@ RUN groupadd -g 1000 desk && useradd -u 1000 -g 1000 -m desk \
 COPY docker/configure-openbox.py /usr/local/lib/auto-linux-desk/configure-openbox.py
 COPY docker/keymap.json /etc/auto-linux-desk/keymap.json
 COPY --chmod=755 docker/desk-focus /usr/local/bin/desk-focus
+COPY docker/dark.Xresources /etc/auto-linux-desk/dark.Xresources
 RUN install -d -o desk -g desk /home/desk/.config/openbox \
     && python3 /usr/local/lib/auto-linux-desk/configure-openbox.py \
         /etc/xdg/openbox/rc.xml /etc/auto-linux-desk/keymap.json /home/desk/.config/openbox/rc.xml \
